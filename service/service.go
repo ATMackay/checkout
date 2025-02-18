@@ -28,7 +28,7 @@ func New(port int, l logrus.FieldLogger, db database.Database, authPsswd string)
 
 // Start spawns the HTTP server.
 func (s *Service) Start() {
-	s.logger.Info("starting service")
+	s.logger.Infof("starting %s", constants.ServiceName)
 	s.logger.WithFields(logrus.Fields{
 		"compilation_date": constants.BuildDate,
 		"commit":           constants.GitCommit,

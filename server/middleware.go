@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -17,8 +18,7 @@ func (s *HTTPServer) authMiddleware(h httprouter.Handle) httprouter.Handle {
 		// Check if the password is correct
 		if password != s.authPassword {
 			// Return 401 Unauthorized if the password is incorrect
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Unauthorized: Invalid password"))
+			respondWithError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized"))
 			return
 		}
 

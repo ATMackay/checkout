@@ -99,23 +99,21 @@ func (h *HTTPServer) MakeServerAPI(db database.Database) *API {
 			handler:    h.PriceItems(),
 		},
 		{
-			path:       "/v0/inventory/items/purchase", // Execute purchase order - TODO
+			path:       "/v0/inventory/items/purchase", // Execute purchase order
 			methodType: http.MethodPost,
 			handler:    h.PurchaseItems(),
 		},
-		// Authenticated requests - TODO
-		/*
-			{
-				path:       "/v0/orders", // Add new items to the inventory item table  - TODO
-				methodType: http.MethodGet,
-				handler:    h.authMiddleware(h.Orders()),
-			},
-			{
-				path:       "/v0/inventory/items", // Add new items to the inventory item table  - TODO
-				methodType: http.MethodPost,
-				handler:    h.authMiddleware(h.Addtems()),
-			},
-		*/
+		// Authenticated requests
+		{
+			path:       "/v0/orders", // Add new items to the inventory item table
+			methodType: http.MethodGet,
+			handler:    h.authMiddleware(h.Orders()),
+		},
+		{
+			path:       "/v0/inventory/items", // Add new items to the inventory item table
+			methodType: http.MethodPost,
+			handler:    h.authMiddleware(h.AddItems()),
+		},
 	},
 	)
 }

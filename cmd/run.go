@@ -20,12 +20,14 @@ func NewRunCmd() *cobra.Command {
 			// Execute the main application lifecycle
 			//
 			// Create New SQL db from flags
-			db, err := database.NewSQLiteDB("db")
+			db, err := database.NewSQLiteDB(database.InMemoryDSN, false)
 			if err != nil {
 				return err
 			}
+			log := logrus.StandardLogger()
+			log.SetLevel(logrus.DebugLevel)
 			// Build Service
-			svc := service.New(8000, logrus.StandardLogger(), db, "")
+			svc := service.New(8000, log, db, "")
 			// Start the server
 			svc.Start()
 			sigChan := make(chan os.Signal, 1)

@@ -38,13 +38,18 @@ type GormDB struct {
 	db *gorm.DB
 }
 
-func NewGormDB(d gorm.Dialector) (*GormDB, error) {
+func NewGormDB(d gorm.Dialector, recreateSchema bool) (*GormDB, error) {
 	db, err := gorm.Open(d, &gorm.Config{
 		Logger:      logger.Discard,
 		PrepareStmt: true,
 	})
 	if err != nil {
 		return nil, err
+	}
+	if recreateSchema {
+		if err := deleteStorage(db); err != nil {
+			return nil, err
+		}
 	}
 
 	return newStorage(db)
@@ -54,11 +59,17 @@ func newStorage(db *gorm.DB) (*GormDB, error) {
 	if err := db.AutoMigrate(&InventoryItem{}); err != nil {
 		return nil, fmt.Errorf("failed to auto migrate gormDeposit: %w", err)
 	}
+	if err := db.AutoMigrate(&Order{}); err != nil {
+		return nil, fmt.Errorf("failed to auto migrate gormDeposit: %w", err)
+	}
 	return &GormDB{db}, nil
 }
 
 func deleteStorage(db *gorm.DB) error {
 	if err := db.Migrator().DropTable(&InventoryItem{}); err != nil {
+		return fmt.Errorf("failed to drop table gormDeposit: %w", err)
+	}
+	if err := db.Migrator().DropTable(&Order{}); err != nil {
 		return fmt.Errorf("failed to drop table gormDeposit: %w", err)
 	}
 	return nil
