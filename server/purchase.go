@@ -67,7 +67,6 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 		// TODO - apply promotions
 		promotions := applyPromotions(items)
 
-		items = append(items, promotions.AddedItems...)
 		price := total - promotions.Deduction
 
 		// Execute order

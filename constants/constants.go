@@ -1,3 +1,3 @@
 package constants
 
-const ServiceName = "checkout"
+const ServiceName = "checkout server"
