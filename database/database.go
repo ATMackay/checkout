@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ATMackay/checkout/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
-//go:generate mockgen -source database.go -destination ../mock/database_mock.go -package mock database
+//go:generate mockgen -source database.go -destination ./mock/database_mock.go -package mock database
 type Database interface {
 	HealthChecker
 	InventoryStore
@@ -21,15 +22,15 @@ type HealthChecker interface {
 }
 
 type InventoryStore interface {
-	AddItems(ctx context.Context, items []*InventoryItem) ([]*InventoryItem, error)
-	GetItemByName(ctx context.Context, name string) (*InventoryItem, error)
-	GetItemBySKU(ctx context.Context, sku string) (*InventoryItem, error)
-	GetItemsBySKU(ctx context.Context, sku []string) ([]*InventoryItem, error)
+	UpsertItems(ctx context.Context, items []*model.Item) ([]*model.Item, error)
+	GetItemByName(ctx context.Context, name string) (*model.Item, error)
+	GetItemBySKU(ctx context.Context, sku string) (*model.Item, error)
+	GetItemsBySKU(ctx context.Context, sku []string) ([]*model.Item, error)
 }
 
 type OrderStore interface {
-	AddOrder(ctx context.Context, o *Order) error
-	GetOrders(ctx context.Context) ([]*Order, error)
+	AddOrder(ctx context.Context, o *model.Order) error
+	GetOrders(ctx context.Context) ([]*model.Order, error)
 }
 
 var _ Database = (*GormDB)(nil)
@@ -56,20 +57,20 @@ func NewGormDB(d gorm.Dialector, recreateSchema bool) (*GormDB, error) {
 }
 
 func newStorage(db *gorm.DB) (*GormDB, error) {
-	if err := db.AutoMigrate(&InventoryItem{}); err != nil {
+	if err := db.AutoMigrate(&model.Item{}); err != nil {
 		return nil, fmt.Errorf("failed to auto migrate gormDeposit: %w", err)
 	}
-	if err := db.AutoMigrate(&Order{}); err != nil {
+	if err := db.AutoMigrate(&model.Order{}); err != nil {
 		return nil, fmt.Errorf("failed to auto migrate gormDeposit: %w", err)
 	}
 	return &GormDB{db}, nil
 }
 
 func deleteStorage(db *gorm.DB) error {
-	if err := db.Migrator().DropTable(&InventoryItem{}); err != nil {
+	if err := db.Migrator().DropTable(&model.Item{}); err != nil {
 		return fmt.Errorf("failed to drop table gormDeposit: %w", err)
 	}
-	if err := db.Migrator().DropTable(&Order{}); err != nil {
+	if err := db.Migrator().DropTable(&model.Order{}); err != nil {
 		return fmt.Errorf("failed to drop table gormDeposit: %w", err)
 	}
 	return nil
@@ -84,17 +85,17 @@ func (g *GormDB) Ping(ctx context.Context) error {
 	return sqlDB.PingContext(ctx)
 }
 
-func (g *GormDB) GetItemByName(ctx context.Context, name string) (*InventoryItem, error) {
+func (g *GormDB) GetItemByName(ctx context.Context, name string) (*model.Item, error) {
 	return g.getItemByKey(ctx, "name", name)
 }
 
-func (g *GormDB) GetItemBySKU(ctx context.Context, sku string) (*InventoryItem, error) {
+func (g *GormDB) GetItemBySKU(ctx context.Context, sku string) (*model.Item, error) {
 	return g.getItemByKey(ctx, "sku", sku)
 }
 
-func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*InventoryItem, error) {
+func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*model.Item, error) {
 
-	var it *InventoryItem
+	var it *model.Item
 
 	if err := g.db.WithContext(ctx).Where(key, name).Find(&it).Error; err != nil {
 		return nil, err
@@ -103,8 +104,8 @@ func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*Inventory
 	return it, nil
 }
 
-func (g *GormDB) GetItemsBySKU(ctx context.Context, skus []string) ([]*InventoryItem, error) {
-	var it []*InventoryItem
+func (g *GormDB) GetItemsBySKU(ctx context.Context, skus []string) ([]*model.Item, error) {
+	var it []*model.Item
 
 	db := g.db.WithContext(ctx).Debug()
 
@@ -115,7 +116,7 @@ func (g *GormDB) GetItemsBySKU(ctx context.Context, skus []string) ([]*Inventory
 	return it, nil
 }
 
-func (g *GormDB) AddItems(ctx context.Context, items []*InventoryItem) ([]*InventoryItem, error) {
+func (g *GormDB) UpsertItems(ctx context.Context, items []*model.Item) ([]*model.Item, error) {
 	if err := g.db.WithContext(ctx).Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).Create(items).Error; err != nil {
@@ -124,13 +125,13 @@ func (g *GormDB) AddItems(ctx context.Context, items []*InventoryItem) ([]*Inven
 	return items, nil
 }
 
-func (g *GormDB) AddOrder(ctx context.Context, o *Order) error {
+func (g *GormDB) AddOrder(ctx context.Context, o *model.Order) error {
 	return g.db.WithContext(ctx).Create(o).Error
 }
 
-func (g *GormDB) GetOrders(ctx context.Context) ([]*Order, error) {
+func (g *GormDB) GetOrders(ctx context.Context) ([]*model.Order, error) {
 
-	var os []*Order
+	var os []*model.Order
 
 	if err := g.db.WithContext(ctx).Order("id DESC").Find(&os).Error; err != nil {
 		return nil, err

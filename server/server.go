@@ -43,18 +43,16 @@ func NewHTTPServer(port int, l logrus.FieldLogger, db database.Database, authPas
 		started:      atomic.Bool{},
 	}
 
-	srv = srv.registerHandlers()
+	srv.registerHandlers()
 
 	return srv
 }
 
-func (h *HTTPServer) registerHandlers() *HTTPServer {
+func (h *HTTPServer) registerHandlers() {
 
-	handler := MakeServerAPI(h).routes()
+	handler := makeServerAPI(h).routes()
 
 	h.server.Handler = handler
-
-	return h
 }
 
 func (h *HTTPServer) Addr() string {

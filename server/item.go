@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 )
@@ -38,22 +37,21 @@ func (h *HTTPServer) AddItems() httprouter.Handle {
 		}
 
 		// validate
-		var dbIt = make([]*database.InventoryItem, len(iReq.Items))
 		for i, it := range iReq.Items {
 			if err := it.Validate(); err != nil {
 				respondWithError(w, http.StatusBadRequest, fmt.Errorf("item at index %d was invalid: %w", i, err))
 				return
 			}
-			dbIt[i] = itemJsonToGORM(it)
+
 		}
 
-		its, err := h.db.AddItems(r.Context(), dbIt)
+		its, err := h.db.UpsertItems(r.Context(), iReq.Items)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := respondWithJSON(w, http.StatusOK, itemsGormToJSON(its)); err != nil {
+		if err := respondWithJSON(w, http.StatusOK, its); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})
@@ -74,7 +72,7 @@ func (h *HTTPServer) ItemPrice() httprouter.Handle {
 
 		ctx := r.Context()
 		nameOrSku := p.ByName("key")
-		var dbItem *database.InventoryItem
+		var dbItem *model.Item
 		var err error
 
 		if model.IsSKU(nameOrSku) {
@@ -142,13 +140,11 @@ func (h *HTTPServer) ItemsPrice() httprouter.Handle {
 		resp := &model.PriceResponse{}
 		var total float64
 		for _, it := range dbItems {
-
 			if it.InventoryQuantity < 1 {
 				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
 				return
 			}
-			// TODO refactor to check inventory of promoted..
-			resp.Items = append(resp.Items, itemGormToJSON(it))
+			resp.Items = append(resp.Items, it)
 			total += it.Price
 		}
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 )
@@ -42,38 +41,60 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 			}
 		}
 
+		// Fetch items from DB
 		dbItems, err := h.db.GetItemsBySKU(ctx, pReq.SKUs)
 		if err != nil {
 			respondWithError(w, http.StatusBadRequest, fmt.Errorf("could not get items: %w", err))
 			return
 		}
 
-		skus := []string{}
+		dbItemMap := make(map[string]*model.Item)
+
 		items := []*model.Item{}
 		var total float64
-		for _, it := range dbItems {
+		for _, dbIt := range dbItems {
+			dbItemMap[dbIt.SKU] = dbIt
+			items = append(items, dbIt)
+		}
 
-			if it.InventoryQuantity < 1 {
+		itemCount := make(map[string]int)
+		for _, sku := range pReq.SKUs {
+			itemCount[sku]++
+			it := dbItemMap[sku]
+			if it.InventoryQuantity < itemCount[it.SKU] {
 				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
 				return
 			}
-
-			items = append(items, &model.Item{
-				Name:  it.Name,
-				SKU:   it.SKU,
-				Price: it.Price,
-			})
-			skus = append(skus, it.SKU)
 			total += it.Price
+			// deduct inventory
+			it.InventoryQuantity--
 		}
 
-		// TODO - apply promotions
+		skus := pReq.SKUs
+
 		promotions := applyPromotions(items)
+
+		for _, it := range promotions.AddedItems {
+			sku := it.SKU
+			itemCount[sku]++
+			dbIt, err := h.db.GetItemBySKU(ctx, sku)
+			if err != nil {
+				respondWithError(w, http.StatusBadRequest, fmt.Errorf("could not get item: %w", err))
+				return
+			}
+			if dbIt.InventoryQuantity < itemCount[sku] {
+				// Skip if we cannot add
+				continue
+			}
+			dbIt.InventoryQuantity--
+			items = append(items, dbIt)
+			skus = append(pReq.SKUs, sku)
+		}
 
 		price := total - promotions.Deduction
 
-		// Execute order
-		order := &database.Order{Price: price, Reference: database.GenerateReference()}
+		// Create order
+		order := &model.Order{Price: price, Reference: model.GenerateReference()}
 		if err := order.SetSKUList(skus); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 			return
@@ -83,7 +104,12 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 			return
 		}
 
-		// Deduct
+		// Save updated dbItems with new inventory totals
+		if _, err := h.db.UpsertItems(ctx, items); err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
 		if err := respondWithJSON(w, http.StatusOK, &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price}); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}

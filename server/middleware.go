@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Authentication middleware - password in Header.
+
 // authMiddleware adds password protection to specific hhtp routes
 func (s *HTTPServer) authMiddleware(h httprouter.Handle) httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
@@ -21,7 +23,6 @@ func (s *HTTPServer) authMiddleware(h httprouter.Handle) httprouter.Handle {
 			return
 		}
 
-		// Call the next handler if authentication succeeds
 		h(w, req, p)
 	})
 }

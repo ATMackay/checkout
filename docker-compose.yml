@@ -1,23 +1,4 @@
 services:
-  checkout:
-    build:
-      context: ..
-      dockerfile: Dockerfile.dev
-    image: dedicated-instance-image
-    environment:
-      - SERVICE=api
-      - DB_HOST=database
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./:/app
-      - ~/.aws:/root/.aws
-    working_dir: /app
-    depends_on:
-      - "database"
-    configs:
-      - source: configfile
-        target: /app/config.yaml
   database:
     image: postgres:17.3
     platform: linux/amd64
@@ -25,7 +6,7 @@ services:
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_DB=checkout-inventory
+      - POSTGRES_DB=checkout-db
     ports:
       - "5433:5432"
     volumes:
