@@ -12,7 +12,7 @@ import (
 // Authentication middleware - password in Header.
 
 // authMiddleware adds password protection to specific hhtp routes
-func (s *HTTPServer) authMiddleware(h httprouter.Handle) httprouter.Handle {
+func (s *Server) authMiddleware(h httprouter.Handle) httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		// Get the password from the header
 		password := req.Header.Get("X-Auth-Password")

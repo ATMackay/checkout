@@ -21,7 +21,7 @@ import (
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError
 // @Router /v0/inventory/items [post]
-func (h *HTTPServer) AddItems() httprouter.Handle {
+func (h *Server) AddItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 		var iReq model.AddItemsRequest
@@ -67,7 +67,7 @@ func (h *HTTPServer) AddItems() httprouter.Handle {
 // @Failure 400 {object} JSONError
 // @Failure 404 {object} JSONError
 // @Router /v0/inventory/item/price/{key} [get]
-func (h *HTTPServer) ItemPrice() httprouter.Handle {
+func (h *Server) ItemPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 		ctx := r.Context()
@@ -111,7 +111,7 @@ func (h *HTTPServer) ItemPrice() httprouter.Handle {
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError
 // @Router /v0/inventory/items/price [post]
-func (h *HTTPServer) ItemsPrice() httprouter.Handle {
+func (h *Server) ItemsPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		ctx := r.Context()
@@ -148,8 +148,11 @@ func (h *HTTPServer) ItemsPrice() httprouter.Handle {
 			total += it.Price
 		}
 
-		// TODO - apply promotions
-		promotions := applyPromotions(resp.Items)
+		promotions, err := h.promotionsEngine.ApplyPromotions(resp.Items)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not apply promotion/deals: %w", err))
+			return
+		}
 
 		resp.Promotions = promotions
 		resp.TotalGross = total

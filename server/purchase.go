@@ -21,7 +21,7 @@ import (
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError
 // @Router /v0/inventory/items/purchase [post]
-func (h *HTTPServer) PurchaseItems() httprouter.Handle {
+func (h *Server) PurchaseItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		ctx := r.Context()
@@ -72,7 +72,11 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 
 		skus := pReq.SKUs
 
-		promotions := applyPromotions(items)
+		promotions, err := h.promotionsEngine.ApplyPromotions(items)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not apply promotion/deals: %w", err))
+			return
+		}
 
 		for _, it := range promotions.AddedItems {
 			sku := it.SKU

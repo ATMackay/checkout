@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/ATMackay/checkout/constants"
 	"github.com/ATMackay/checkout/database"
@@ -42,6 +43,9 @@ func NewRunCmd() *cobra.Command {
 				if dbHost != "" {
 					db, err = database.NewPostgresDB(dbHost, dbUser, dbPassword, dbPort)
 				} else {
+					if err := os.MkdirAll(filepath.Dir(sqliteDBPath), 0o700); err != nil {
+						return fmt.Errorf("failed to create data dir: %w", err)
+					}
 					db, err = database.NewSQLiteDB(sqliteDBPath, recreateSchema)
 				}
 			}
@@ -58,7 +62,7 @@ func NewRunCmd() *cobra.Command {
 			log.SetLevel(lvl)
 
 			// Build Service
-			svc := server.NewHTTPServer(port, log, db, authPassword)
+			svc := server.NewServer(port, log, db, authPassword)
 			// Start the server
 
 			log.WithFields(logrus.Fields{
