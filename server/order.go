@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -26,16 +25,8 @@ func (h *HTTPServer) Orders() httprouter.Handle {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not get orders from db: %w", err))
 			return
 		}
-		var ors = make(model.Orders, len(os))
-		for i, o := range os {
-			skus, err := o.GetSKUList()
-			if err != nil {
-				respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not get sku list: %w", err))
-				return
-			}
-			ors[i] = model.Order{Reference: o.Reference, SKUs: skus, Cost: o.Price}
-		}
-		if err := respondWithJSON(w, http.StatusOK, &ors); err != nil {
+
+		if err := respondWithJSON(w, http.StatusOK, &os); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})

@@ -1,41 +1,16 @@
 package server
 
-import "github.com/ATMackay/checkout/model"
+import (
+	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/promotions"
+)
+
+var promotionsEngine = promotions.NewPromotionsEngine(
+	&promotions.MacBookProPromotion{},
+	&promotions.GoogleTVPromotion{},
+	&promotions.AlexaSpeakerPromotion{}, // Add more deals/promotions to the engine
+)
 
 func applyPromotions(items []*model.Item) *model.Promotions {
-	var promotions model.Promotions
-
-	// Count the number of each item
-	itemCounts := make(map[string]int)
-	for _, item := range items {
-		itemCounts[item.Name]++
-	}
-
-	// Apply promotions
-	for _, item := range items {
-		switch item.Name {
-		case "MacBook Pro":
-			// Add a free Raspberry Pi B for each MacBook Pro
-			promotions.AddedItems = append(promotions.AddedItems, &model.Item{
-				Name:  "Raspberry Pi B",
-				SKU:   "RaspberryPiB",
-				Price: 0, // Added for free
-			})
-		case "Google TV":
-			// Buy 3 Google TVs for the price of 2
-			if itemCounts["GoogleTV"] >= 3 {
-				discount := float64(itemCounts["GoogleTV"]/3) * item.Price
-				promotions.Deduction += discount
-			}
-		case "Alexa Speaker":
-			// 10% discount on all Alexa Speakers if more than 3 are bought
-			if itemCounts["AlexaSpeaker"] > 3 {
-				discount := 0.1 * item.Price * float64(itemCounts["AlexaSpeaker"])
-				promotions.Deduction += discount
-			}
-		}
-
-	}
-
-	return &promotions
+	return promotionsEngine.ApplyPromotions(items)
 }

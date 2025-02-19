@@ -26,8 +26,8 @@ type API struct {
 	endpoints []endPoint
 }
 
-// MakeServerAPI returns a server http API with endpoints
-func MakeServerAPI(h *HTTPServer) *API {
+// makeServerAPI returns a server http API with endpoints
+func makeServerAPI(h *HTTPServer) *API {
 	return addEndpoints([]endPoint{
 		// Liveness/Readiness probing
 		{

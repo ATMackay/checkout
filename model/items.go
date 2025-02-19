@@ -6,10 +6,15 @@ import (
 )
 
 type Item struct {
-	Name              string  `json:"name"`
-	SKU               string  `json:"sku"`
-	Price             float64 `json:"price"`
-	InventoryQuantity int     `json:"inventory_quantity"`
+	ID                int     `json:"id,omitempty" gorm:"primaryKey;type:integer"`
+	SKU               string  `json:"sku" gorm:"column:sku;type:string;unique"`
+	Name              string  `json:"name" gorm:"column:name;type:string;unique"`
+	Price             float64 `json:"price" gorm:"column:price;type:double"`
+	InventoryQuantity int     `json:"inventory_quantity" gorm:"column:inventory_quantity;type:integer"`
+}
+
+func (i *Item) TableName() string {
+	return "inventory"
 }
 
 type AddItemsRequest struct {

@@ -19,9 +19,8 @@ import (
 // @Router /status [get]
 func Status() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		if err := respondWithJSON(w, http.StatusOK, &model.StatusResponse{Message: "OK", Version: constants.Version, Service: constants.ServiceName}); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+		// Fixed response never errors
+		_ = respondWithJSON(w, http.StatusOK, &model.StatusResponse{Message: "OK", Version: constants.Version, Service: constants.ServiceName})
 	})
 }
 
