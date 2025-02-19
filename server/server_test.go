@@ -24,7 +24,7 @@ var testLog = &logrus.Logger{
 
 func Test_ServerStartStop(t *testing.T) {
 
-	s := NewHTTPServer(8001, testLog, nil, "")
+	s := NewServer(8001, testLog, nil, "")
 
 	s.Start()
 	// Wait until server goroutine has initialized
@@ -45,7 +45,7 @@ func Test_ServerEndpoints(t *testing.T) {
 
 	db := mock.NewMockDatabase(ctrl)
 
-	s := NewHTTPServer(8001, testLog, db, "")
+	s := NewServer(8001, testLog, db, "")
 
 	ctx := context.Background()
 	tests := []struct {

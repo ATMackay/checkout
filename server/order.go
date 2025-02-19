@@ -17,7 +17,7 @@ import (
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError
 // @Router /v0/orders [get]
-func (h *HTTPServer) Orders() httprouter.Handle {
+func (h *Server) Orders() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		os, err := h.db.GetOrders(r.Context())

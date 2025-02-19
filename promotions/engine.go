@@ -15,14 +15,17 @@ func NewPromotionsEngine(promotions ...Promotion) *PromotionsEngine {
 }
 
 // ApplyPromotions applies all registered promotions to the items.
-func (e *PromotionsEngine) ApplyPromotions(items []*model.Item) *model.Promotions {
+func (e *PromotionsEngine) ApplyPromotions(items []*model.Item) (*model.Promotions, error) {
 	result := &model.Promotions{}
 
 	for _, promotion := range e.promotions {
-		p := promotion.Apply(items)
+		p, err := promotion.Apply(items)
+		if err != nil {
+			return nil, err
+		}
 		result.Deduction += p.Deduction
 		result.AddedItems = append(result.AddedItems, p.AddedItems...)
 	}
 
-	return result
+	return result, nil
 }

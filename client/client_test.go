@@ -30,7 +30,7 @@ func TestClient(t *testing.T) {
 		Level:     logrus.InfoLevel,
 	}
 	lo.SetLevel(logrus.DebugLevel)
-	s := server.NewHTTPServer(8001, lo, db, "1234")
+	s := server.NewServer(8001, lo, db, "1234")
 	s.Start()
 
 	time.Sleep(10 * time.Millisecond)
