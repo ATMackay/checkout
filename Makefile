@@ -19,13 +19,13 @@ build:
 	@echo  "To run the application execute ./build/checkout run --sqlite"
 
 run: build
-	cd build && $(BUILD_FOLDER)/checkout run --in-memory
+	./$(BUILD_FOLDER)/checkout run --memory-db
 
 build/coverage:
 	mkdir -p $(COVERAGE_BUILD_FOLDER)
 
 test: build/coverage
-	go test -cover -coverprofile $(UNIT_COVERAGE_OUT) -v ./...
+	go test -cover -coverprofile $(UNIT_COVERAGE_OUT) ./...
 
 test-coverage: test
 	go tool cover -html=$(UNIT_COVERAGE_OUT)
@@ -37,4 +37,12 @@ docker:
 docker-run-db:
 	@docker compose -f docker-compose.yml up -d database
 
-.PHONY: build run docker test test-coverage docker-run-db
+swag-install:
+	go install github.com/swaggo/swag/cmd/swag@latest
+	@echo  "Installed swag"
+
+docs: swag-install
+	swag init -g main.go --output docs/generated
+	@echo "Swagger documentation generated"
+
+.PHONY: build run docker test test-coverage docker-run-db swag-install docs

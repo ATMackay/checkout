@@ -18,8 +18,6 @@ func Test_ServerStartStop(t *testing.T) {
 
 	s := NewHTTPServer(8000, testLog, nil, "")
 
-	s.RegisterHandlers()
-
 	s.Start()
 	// Wait until server goroutine has initialized
 	for !s.started.Load() {

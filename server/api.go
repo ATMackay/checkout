@@ -8,8 +8,69 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+var (
+	StatusEndPnt = "/status"
+	HealthEndPnt = "/health"
+
+	ItemsEndPnt        = "/v0/inventory/items"
+	ItemPriceEndPnt    = "/v0/inventory/item/price"
+	ItemsPriceEndPnt   = "/v0/inventory/items/price"
+	ItemPurchaseEndPnt = "/v0/inventory/items/purchase"
+	KeyParam           = "/:key"
+
+	OrdersEndPnt = "/v0/orders"
+)
+
+// API is a collection of endpoints.
 type API struct {
 	endpoints []endPoint
+}
+
+// MakeServerAPI returns a server http API with endpoints
+func MakeServerAPI(h *HTTPServer) *API {
+	return addEndpoints([]endPoint{
+		// Liveness/Readiness probing
+		{
+			path:       StatusEndPnt,
+			methodType: http.MethodGet,
+			handler:    Status(),
+		},
+		{
+			path:       HealthEndPnt,
+			methodType: http.MethodGet,
+			handler:    h.Health(),
+		},
+		//
+		// Checkout Application HTTP API
+		//
+		{
+			path:       ItemPriceEndPnt + KeyParam, // Price for single item
+			methodType: http.MethodGet,
+			handler:    h.ItemPrice(),
+		},
+		{
+			path:       ItemPriceEndPnt, // Alternative total price for items batch
+			methodType: http.MethodPost,
+			handler:    h.ItemsPrice(),
+		},
+		{
+			path:       ItemPurchaseEndPnt, // Execute purchase order
+			methodType: http.MethodPost,
+			handler:    h.PurchaseItems(),
+		},
+		// Authenticated requests
+		{
+			path:       OrdersEndPnt, // Add new items to the inventory item table
+			methodType: http.MethodGet,
+			handler:    h.authMiddleware(h.Orders()),
+		},
+		{
+			path:       ItemsEndPnt, // Add new items to the inventory item table
+			methodType: http.MethodPost,
+			handler:    h.authMiddleware(h.AddItems()),
+		},
+	},
+	)
 }
 
 // endPoint represents an api element.
@@ -37,7 +98,7 @@ func (a *API) routes() *httprouter.Router {
 	router := httprouter.New()
 
 	for _, e := range a.endpoints {
-		router.Handle(e.methodType, e.path, logHTTPMiddleware(e.handler))
+		router.Handle(e.methodType, e.path, observerMiddleware(e.handler))
 	}
 
 	// Add metrics server
@@ -47,9 +108,13 @@ func (a *API) routes() *httprouter.Router {
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload any) error {
-	response, err := json.Marshal(payload)
-	if err != nil {
-		return err
+	var response []byte
+	var err error
+	if payload != nil {
+		response, err = json.Marshal(payload)
+		if err != nil {
+			return err
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

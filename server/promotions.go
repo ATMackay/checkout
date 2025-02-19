@@ -1,12 +1,9 @@
 package server
 
-type Promotions struct {
-	Deduction  float64 `json:"deduction"`
-	AddedItems []*Item `json:"added_items"`
-}
+import "github.com/ATMackay/checkout/model"
 
-func applyPromotions(items []*Item) *Promotions {
-	var promotions Promotions
+func applyPromotions(items []*model.Item) *model.Promotions {
+	var promotions model.Promotions
 
 	// Count the number of each item
 	itemCounts := make(map[string]int)
@@ -19,7 +16,7 @@ func applyPromotions(items []*Item) *Promotions {
 		switch item.Name {
 		case "MacBook Pro":
 			// Add a free Raspberry Pi B for each MacBook Pro
-			promotions.AddedItems = append(promotions.AddedItems, &Item{
+			promotions.AddedItems = append(promotions.AddedItems, &model.Item{
 				Name:  "Raspberry Pi B",
 				SKU:   "RaspberryPiB",
 				Price: 0, // Added for free

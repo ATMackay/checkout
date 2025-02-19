@@ -5,38 +5,38 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/constants"
+	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 )
 
-// StatusResponse contains status response fields.
-type StatusResponse struct {
-	Message string `json:"message,omitempty"`
-	Version string `json:"version,omitempty"`
-	Service string `json:"service,omitempty"`
-}
-
-// Status implements the status request endpoint. Always returns OK.
+// Status godoc
+// @Summary Get service status
+// @Description Returns the status of the service
+// @Tags status
+// @Produce json
+// @Success 200 {object} StatusResponse
+// @Failure 500 {object} JSONError
+// @Router /status [get]
 func Status() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		if err := respondWithJSON(w, http.StatusOK, &StatusResponse{Message: "OK", Version: constants.Version, Service: constants.ServiceName}); err != nil {
+		if err := respondWithJSON(w, http.StatusOK, &model.StatusResponse{Message: "OK", Version: constants.Version, Service: constants.ServiceName}); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})
-
 }
 
-// HealthResponse contains health probe response fields.
-type HealthResponse struct {
-	Version  string   `json:"version,omitempty"`
-	Service  string   `json:"service,omitempty"`
-	Failures []string `json:"failures"`
-}
-
-// Health pings database clients. It ensures that the
-// drivers are connected ready to accept requests.
+// Health godoc
+// @Summary Get service health
+// @Description Checks the health of the service and its dependencies.
+// @Tags health
+// @Produce json
+// @Success 200 {object} HealthResponse
+// @Failure 503 {object} HealthResponse
+// @Failure 500 {object} JSONError
+// @Router /health [get]
 func (h *HTTPServer) Health() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		health := &HealthResponse{
+		health := &model.HealthResponse{
 			Service: constants.ServiceName,
 			Version: constants.Version,
 		}

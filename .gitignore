@@ -1,3 +1,5 @@
 *.out
 checkout
 build/*
+docs/generated
+data
