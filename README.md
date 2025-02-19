@@ -9,7 +9,7 @@
 
 ## System Design 
 
-The Checkout server is stateless and exposes a RESTful http interface.
+The Checkout server is a stateless web server (microservice) exposing a RESTful HTTP interface.
 
 ### Code layout
 
@@ -17,7 +17,7 @@ The Checkout server is stateless and exposes a RESTful http interface.
 .
 ├── main.go      // main application entrypoint
 ├── build        // stores generated binary and code coverage data
-├── client       // HTTP client wrappers - Useful for 
+├── client       // HTTP client wrappers for interacting with the server REST API
 ├── cmd          // CLI command package (cobra/viper)
 ├── constants    // Contains embedded version, service name and other global constants
 ├── database     // Multiple database driver implementations using GORM
@@ -25,7 +25,7 @@ The Checkout server is stateless and exposes a RESTful http interface.
 │   ├── openapi  // OpenAPI/Swagger docs that can be imported into Postman
 │   └── markdown // Additional documentation
 ├── integration  // Integration testing
-├── model        // Database and API model.
+├── model        // Database and API model
 ├── promotions   // Engine with composable promotions strategy implementations
 └── server       // HTTP server built with httprouter (high performance, panic recovery, concurrency)
 ```
