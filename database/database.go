@@ -21,7 +21,7 @@ type HealthChecker interface {
 }
 
 type InventoryStore interface {
-	AddItems(ctx context.Context, items []*InventoryItem) error
+	AddItems(ctx context.Context, items []*InventoryItem) ([]*InventoryItem, error)
 	GetItemByName(ctx context.Context, name string) (*InventoryItem, error)
 	GetItemBySKU(ctx context.Context, sku string) (*InventoryItem, error)
 	GetItemsBySKU(ctx context.Context, sku []string) ([]*InventoryItem, error)
@@ -74,6 +74,7 @@ func deleteStorage(db *gorm.DB) error {
 	}
 	return nil
 }
+
 func (g *GormDB) Ping(ctx context.Context) error {
 	// Get the underlying *sql.DB
 	sqlDB, err := g.db.DB()
@@ -95,7 +96,7 @@ func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*Inventory
 
 	var it *InventoryItem
 
-	if err := g.db.WithContext(ctx).Where(key, name).Find(it).Error; err != nil {
+	if err := g.db.WithContext(ctx).Where(key, name).Find(&it).Error; err != nil {
 		return nil, err
 	}
 
@@ -105,20 +106,22 @@ func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*Inventory
 func (g *GormDB) GetItemsBySKU(ctx context.Context, skus []string) ([]*InventoryItem, error) {
 	var it []*InventoryItem
 
-	if err := g.db.WithContext(ctx).Where("sku", skus).Scan(it).Error; err != nil {
+	db := g.db.WithContext(ctx).Debug()
+
+	if err := db.Where("sku IN ?", skus).Find(&it).Error; err != nil {
 		return nil, err
 	}
 
 	return it, nil
 }
 
-func (g *GormDB) AddItems(ctx context.Context, items []*InventoryItem) error {
+func (g *GormDB) AddItems(ctx context.Context, items []*InventoryItem) ([]*InventoryItem, error) {
 	if err := g.db.WithContext(ctx).Clauses(clause.OnConflict{
 		UpdateAll: true,
 	}).Create(items).Error; err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return items, nil
 }
 
 func (g *GormDB) AddOrder(ctx context.Context, o *Order) error {
@@ -129,7 +132,7 @@ func (g *GormDB) GetOrders(ctx context.Context) ([]*Order, error) {
 
 	var os []*Order
 
-	if err := g.db.WithContext(ctx).Order("id DESC").Scan(os).Error; err != nil {
+	if err := g.db.WithContext(ctx).Order("id DESC").Find(&os).Error; err != nil {
 		return nil, err
 	}
 

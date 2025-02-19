@@ -6,26 +6,28 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/database"
+	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 )
 
-// TODO
-
-type PurchaseItemsRequest struct {
-	SKUs []string `json:"skus"`
-}
-
-type PurchaseItemsResponse struct {
-	OrderReference string  `json:"order_reference"`
-	Cost           float64 `json:"cost"`
-}
-
+// PurchaseItems godoc
+// @Summary Execute a purchase for the supplied item list.
+// @Description Create a purchase order for the supplied item list.
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Param skus body PurchaseItemsRequest true "List of SKUs"
+// @Success 200 {object} PurchaseItemsResponse
+// @Failure 400 {object} JSONError
+// @Failure 404 {object} JSONError
+// @Failure 503 {object} JSONError
+// @Router /v0/inventory/items/purchase [post]
 func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		ctx := r.Context()
 
-		var pReq PurchaseItemsRequest
+		var pReq model.PurchaseItemsRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&pReq); err != nil {
 			respondWithError(w, http.StatusBadRequest, err)
@@ -34,7 +36,7 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 
 		// validate request params
 		for _, sku := range pReq.SKUs {
-			if !isSKU(sku) {
+			if !model.IsSKU(sku) {
 				respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid sku input '%s'", sku))
 				return
 			}
@@ -47,7 +49,7 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 		}
 
 		skus := []string{}
-		items := []*Item{}
+		items := []*model.Item{}
 		var total float64
 		for _, it := range dbItems {
 
@@ -56,12 +58,13 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 				return
 			}
 
-			items = append(items, &Item{
+			items = append(items, &model.Item{
 				Name:  it.Name,
 				SKU:   it.SKU,
 				Price: it.Price,
 			})
 			skus = append(skus, it.SKU)
+			total += it.Price
 		}
 
 		// TODO - apply promotions
@@ -81,7 +84,7 @@ func (h *HTTPServer) PurchaseItems() httprouter.Handle {
 		}
 
 		// Deduct
-		if err := respondWithJSON(w, http.StatusOK, &PurchaseItemsResponse{OrderReference: order.Reference, Cost: price}); err != nil {
+		if err := respondWithJSON(w, http.StatusOK, &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price}); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})

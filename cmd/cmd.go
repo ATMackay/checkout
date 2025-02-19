@@ -8,15 +8,16 @@ import (
 )
 
 func NewCheckoutCmd() *cobra.Command {
-	cmds := &cobra.Command{
-		Use:   "checkout [SUBCOMMAND] [FLAGS]",
-		Short: fmt.Sprintf("checkout server v%s", constants.Version),
-		RunE:  runHelp,
+	cmd := &cobra.Command{
+		Use: "checkout [subcommand]",
+		Short: fmt.Sprintf("checkout server command line interface.\n\nVERSION:\n  semver: %s\n  commit: %s\n  compilation date: %s",
+			constants.Version, constants.GitCommit, constants.BuildDate),
+		RunE: runHelp,
 	}
 
-	cmds.AddCommand(NewRunCmd())
-	cmds.AddCommand(VersionCmd())
-	return cmds
+	cmd.AddCommand(NewRunCmd())
+	cmd.AddCommand(VersionCmd())
+	return cmd
 }
 
 func runHelp(cmd *cobra.Command, _ []string) error {

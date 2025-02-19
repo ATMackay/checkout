@@ -4,43 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 
 	"github.com/ATMackay/checkout/database"
+	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 )
 
-type Item struct {
-	Name              string  `json:"name"`
-	SKU               string  `json:"sku"`
-	Price             float64 `json:"price"`
-	InventoryQuantity int     `json:"inventory_quantity"`
-}
-
-func (i *Item) Validate() error {
-	if i.Name == "" {
-		return fmt.Errorf("item name must be a non-empty string")
-	}
-	if !isSKU(i.SKU) {
-		return fmt.Errorf("item SKU must be a valid SKU of length 6")
-	}
-	if i.Price < 0 {
-		return fmt.Errorf("invalid price less than 0")
-	}
-	if i.InventoryQuantity < 1 {
-		return fmt.Errorf("invalid inventory_quantity less than 1")
-	}
-	return nil
-}
-
-type AddItemsRequest struct {
-	Items []*Item `json:"items"`
-}
-
+// AddItems godoc
+// @Summary Add new or updated items to the inventory table
+// @Description Add new or updated items
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Param skus body AddItemsRequest true "List of Items"
+// @Success 200
+// @Failure 400 {object} JSONError
+// @Failure 404 {object} JSONError
+// @Failure 503 {object} JSONError
+// @Router /v0/inventory/items [post]
 func (h *HTTPServer) AddItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
-		var iReq AddItemsRequest
+		var iReq model.AddItemsRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&iReq); err != nil {
 			respondWithError(w, http.StatusBadRequest, err)
@@ -53,39 +38,38 @@ func (h *HTTPServer) AddItems() httprouter.Handle {
 		}
 
 		// validate
-		var dbIt []*database.InventoryItem
+		var dbIt = make([]*database.InventoryItem, len(iReq.Items))
 		for i, it := range iReq.Items {
 			if err := it.Validate(); err != nil {
 				respondWithError(w, http.StatusBadRequest, fmt.Errorf("item at index %d was invalid: %w", i, err))
 				return
 			}
-			dbIt = append(dbIt, &database.InventoryItem{
-				Name:              it.Name,
-				SKU:               it.SKU,
-				Price:             it.Price,
-				InventoryQuantity: it.InventoryQuantity,
-			})
+			dbIt[i] = itemJsonToGORM(it)
 		}
 
-		if err := h.db.AddItems(r.Context(), dbIt); err != nil {
+		its, err := h.db.AddItems(r.Context(), dbIt)
+		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := respondWithJSON(w, http.StatusOK, nil); err != nil {
+		if err := respondWithJSON(w, http.StatusOK, itemsGormToJSON(its)); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})
 }
 
-type PriceResponse struct {
-	Items             []*Item     `json:"items"`
-	Promotions        *Promotions `json:"promotions,omitempty"`
-	TotalGross        float64     `json:"total_gross"`
-	TotalWithDiscount float64     `json:"total_with_discount"`
-}
-
-func (h *HTTPServer) PriceItem() httprouter.Handle {
+// ItemPrice godoc
+// @Summary Get price for a single item
+// @Description Get price information for a single item by SKU or name
+// @Tags inventory
+// @Produce json
+// @Param key path string true "Item SKU or Name"
+// @Success 200 {object} PriceResponse
+// @Failure 400 {object} JSONError
+// @Failure 404 {object} JSONError
+// @Router /v0/inventory/item/price/{key} [get]
+func (h *HTTPServer) ItemPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 		ctx := r.Context()
@@ -93,7 +77,7 @@ func (h *HTTPServer) PriceItem() httprouter.Handle {
 		var dbItem *database.InventoryItem
 		var err error
 
-		if isSKU(nameOrSku) {
+		if model.IsSKU(nameOrSku) {
 			dbItem, err = h.db.GetItemBySKU(ctx, nameOrSku)
 		} else {
 			dbItem, err = h.db.GetItemByName(ctx, nameOrSku)
@@ -107,8 +91,8 @@ func (h *HTTPServer) PriceItem() httprouter.Handle {
 			return
 		}
 
-		if err := respondWithJSON(w, http.StatusOK, &PriceResponse{
-			Items:             []*Item{{Name: dbItem.Name, SKU: dbItem.SKU, Price: dbItem.Price}},
+		if err := respondWithJSON(w, http.StatusOK, &model.PriceResponse{
+			Items:             []*model.Item{{Name: dbItem.Name, SKU: dbItem.SKU, Price: dbItem.Price}},
 			TotalGross:        dbItem.Price,
 			TotalWithDiscount: dbItem.Price,
 		}); err != nil {
@@ -117,16 +101,24 @@ func (h *HTTPServer) PriceItem() httprouter.Handle {
 	})
 }
 
-type PriceItemsRequest struct {
-	SKUs []string `json:"skus"`
-}
-
-func (h *HTTPServer) PriceItems() httprouter.Handle {
+// ItemsPrice godoc
+// @Summary Get prices for multiple items
+// @Description Get total price for a batch of items by SKUs
+// @Tags inventory
+// @Accept json
+// @Produce json
+// @Param skus body PriceItemsRequest true "List of SKUs"
+// @Success 200 {object} PriceResponse
+// @Failure 400 {object} JSONError
+// @Failure 404 {object} JSONError
+// @Failure 503 {object} JSONError
+// @Router /v0/inventory/items/price [post]
+func (h *HTTPServer) ItemsPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		ctx := r.Context()
 
-		var pReq PriceItemsRequest
+		var pReq model.ItemsPriceRequest
 
 		if err := json.NewDecoder(r.Body).Decode(&pReq); err != nil {
 			respondWithError(w, http.StatusBadRequest, err)
@@ -135,7 +127,7 @@ func (h *HTTPServer) PriceItems() httprouter.Handle {
 
 		// validate request params
 		for _, sku := range pReq.SKUs {
-			if !isSKU(sku) {
+			if !model.IsSKU(sku) {
 				respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid sku input '%s'", sku))
 				return
 			}
@@ -147,7 +139,7 @@ func (h *HTTPServer) PriceItems() httprouter.Handle {
 			return
 		}
 
-		resp := &PriceResponse{}
+		resp := &model.PriceResponse{}
 		var total float64
 		for _, it := range dbItems {
 
@@ -156,12 +148,7 @@ func (h *HTTPServer) PriceItems() httprouter.Handle {
 				return
 			}
 			// TODO refactor to check inventory of promoted..
-
-			resp.Items = append(resp.Items, &Item{
-				Name:  it.Name,
-				SKU:   it.SKU,
-				Price: it.Price,
-			})
+			resp.Items = append(resp.Items, itemGormToJSON(it))
 			total += it.Price
 		}
 
@@ -176,15 +163,4 @@ func (h *HTTPServer) PriceItems() httprouter.Handle {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})
-}
-
-// isSKU checks if the input string is an SKU
-func isSKU(input string) bool {
-	// Define a regex pattern for SKUs (alphanumeric, no spaces, 6 characters)
-	skuPattern := `^[a-zA-Z0-9]{6,6}$`
-	matched, err := regexp.MatchString(skuPattern, input)
-	if err != nil {
-		return false
-	}
-	return matched
 }

@@ -1,3 +1,8 @@
+// @title Checkout Service API
+// @version 1.0
+// @description API for managing inventory and orders
+// @host localhost:8000
+// @BasePath /
 package server
 
 import (
@@ -12,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// HTTPServer handles requests and access to the connected Database.
 type HTTPServer struct {
 	server *http.Server
 	log    logrus.FieldLogger
@@ -22,7 +28,7 @@ type HTTPServer struct {
 	started atomic.Bool
 }
 
-// NewHTTPServer returns a HTTP server with httprouter Router
+// NewHTTPServer returns a HTTPServer with httprouter Router
 // handling requests.
 func NewHTTPServer(port int, l logrus.FieldLogger, db database.Database, authPasswd string) *HTTPServer {
 
@@ -37,16 +43,17 @@ func NewHTTPServer(port int, l logrus.FieldLogger, db database.Database, authPas
 		started:      atomic.Bool{},
 	}
 
-	srv = srv.RegisterHandlers()
+	srv = srv.registerHandlers()
 
 	return srv
 }
 
-func (h *HTTPServer) RegisterHandlers() *HTTPServer {
+func (h *HTTPServer) registerHandlers() *HTTPServer {
 
-	handler := h.MakeServerAPI(h.db).routes()
+	handler := MakeServerAPI(h).routes()
 
 	h.server.Handler = handler
+
 	return h
 }
 
@@ -63,57 +70,12 @@ func (h *HTTPServer) Start() {
 			h.log.WithFields(logrus.Fields{"error": err}).Warn("serverTerminated")
 		}
 	}()
+	h.log.Infof("listening on port %v", h.Addr())
 }
 
+// Stop gracefully shuts down the HTTP server.
 func (h *HTTPServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return h.server.Shutdown(ctx)
-}
-
-// MakeServerAPI returns a server http API with endpoints
-func (h *HTTPServer) MakeServerAPI(db database.Database) *API {
-	return addEndpoints([]endPoint{
-		// Liveness/Readiness probing
-		{
-			path:       "/status",
-			methodType: http.MethodGet,
-			handler:    Status(),
-		},
-		{
-			path:       "/health",
-			methodType: http.MethodGet,
-			handler:    h.Health(),
-		},
-		//
-		// Checkout Application HTTP API
-		//
-		{
-			path:       "/v0/inventory/item/price/:key", // Price for single item
-			methodType: http.MethodGet,
-			handler:    h.PriceItem(),
-		},
-		{
-			path:       "/v0/inventory/items/price", // Alternative total price for items batch
-			methodType: http.MethodPost,
-			handler:    h.PriceItems(),
-		},
-		{
-			path:       "/v0/inventory/items/purchase", // Execute purchase order
-			methodType: http.MethodPost,
-			handler:    h.PurchaseItems(),
-		},
-		// Authenticated requests
-		{
-			path:       "/v0/orders", // Add new items to the inventory item table
-			methodType: http.MethodGet,
-			handler:    h.authMiddleware(h.Orders()),
-		},
-		{
-			path:       "/v0/inventory/items", // Add new items to the inventory item table
-			methodType: http.MethodPost,
-			handler:    h.authMiddleware(h.AddItems()),
-		},
-	},
-	)
 }
