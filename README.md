@@ -18,7 +18,7 @@ The Checkout server is stateless and exposes a RESTful http interface.
 ├── main.go      // main application entrypoint
 ├── build        // stores generated binary and code coverage data
 ├── client       // HTTP client wrappers - Useful for 
-├── cmd          // CLI command package (Cobra/Viper)
+├── cmd          // CLI command package (cobra/viper)
 ├── constants    // Contains embedded version, service name and other global constants
 ├── database     // Multiple database driver implementations using GORM
 ├── docs
@@ -198,6 +198,33 @@ All endpoints return the following error response in case of failure:
 
 ## Getting started
 
+### Usage
+```
+$ make build
+$ ./build/checkout --help   
+checkout server command line interface.
+
+VERSION:
+  semver: v0.0.1-1-g0ab807f
+  commit: 0ab807f7b986bd8cfa4b593e97b02da62bc4ba92
+  compilation date: 2025-02-19 22:08:26
+
+Usage:
+  checkout [subcommand] [flags]
+  checkout [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  run         Start the checkout server
+  version     Print version details
+
+Flags:
+  -h, --help   help for checkout
+
+Use "checkout [command] --help" for more information about a command.
+```
+
 ### Run the checkout server with in-memory DB
 ```
 $ make run
@@ -209,16 +236,15 @@ $ make build
 $ ./build/checkout run --sqlite data/db --log-level debug --password 1234
 ```
 
-The password is to protect authenticated endpoints
-
 ### Run with connection to Postgres
 Ensure that you have a Postgres instance listening on <DB_HOST>:<DB_PORT> ready to accept connection.
 ```
 $ make build
-$ ./build/checkout run --db-host <DB_HOST> --db-port <DB_PORT> --db-password <DB_PASSWORD> --password 1234
+$ ./build/checkout run --db-host <DB_HOST> --db-port <DB_PORT> --db-user <DB_USER> --db-password <DB_PASSWORD> --password 1234
 ```
 
 ### Run package tests
 ```
 $ make test
 ```
+
