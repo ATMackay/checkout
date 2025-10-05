@@ -17,7 +17,6 @@ import (
 )
 
 func TestClient(t *testing.T) {
-
 	// Use in-memory  to execute tests
 	db, err := database.NewSQLiteDB(database.InMemoryDSN, false)
 	if err != nil {
@@ -36,7 +35,10 @@ func TestClient(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	baseUrl := fmt.Sprintf("http://0.0.0.0%v", s.Addr())
 
-	cl := New(baseUrl)
+	cl, err := New(baseUrl)
+	if err != nil {
+		t.Fatal(err)
+	}
 	cl.AddAuthorizationHeader("1234")
 
 	ctx := context.Background()
@@ -109,7 +111,7 @@ func TestClient(t *testing.T) {
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		// incorrect verb
-		if err := cl.executeRequest(ctx, nil, http.MethodPut, server.HealthEndPnt, nil); !errors.Is(err, ErrMethodNotAllowed) {
+		if err := cl.executeJSONRequest(ctx, http.MethodPut, server.HealthEndPnt, nil, nil); !errors.Is(err, ErrMethodNotAllowed) {
 			t.Fatalf("expected error got %v", err)
 		}
 	})
