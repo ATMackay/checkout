@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 
 	"github.com/ATMackay/checkout/constants"
 	"github.com/ATMackay/checkout/database"
@@ -67,6 +68,10 @@ func NewRunCmd() *cobra.Command {
 				"commit", constants.GitCommit,
 				"version", constants.Version,
 			)
+			if buildDirty() {
+				// Warn if the build contains uncommitted changes
+				slog.Warn("running a DIRTY build (uncommitted changes present) — do not run in production")
+			}
 			svc.Start()
 
 			sigChan := make(chan os.Signal, 1)
@@ -127,3 +132,5 @@ func NewRunCmd() *cobra.Command {
 	viper.AutomaticEnv()           // Automatically read environment variables
 	return cmd
 }
+
+func buildDirty() bool { return strings.EqualFold(constants.Dirty, "true") }
