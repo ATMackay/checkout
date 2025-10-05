@@ -8,4 +8,5 @@ var (
 	CommitDate = ""      // overwritten by -ldflag "-X 'github.com/ATMackay/checkout/constants.CommitDate=$commit_date'"
 	GitCommit  = ""      // overwritten by -ldflag "-X 'github.com/ATMackay/checkout/constants.GitCommit=$commit_hash'"
 	BuildDate  = ""      // overwritten by -ldflag "-X 'github.com/ATMackay/checkout/constants.BuildDate=$build_date'"
+	Dirty      = "false" // overwritten by -ldflag "-X 'github.com/ATMackay/checkout/constants.Dirty=$dirty'"
 )

@@ -2,21 +2,34 @@
 
 # Build folder
 BUILD_FOLDER = build
+COVERAGE_BUILD_FOLDER    ?= $(BUILD_FOLDER)/coverage
+UNIT_COVERAGE_OUT        ?= $(COVERAGE_BUILD_FOLDER)/ut_cov.out
+BIN                      ?= $(BUILD_FOLDER)/checkout
 
-# Test coverage variables
-COVERAGE_BUILD_FOLDER = $(BUILD_FOLDER)/coverage
-UNIT_COVERAGE_OUT  = $(COVERAGE_BUILD_FOLDER)/ut_cov.out
+# Packages
+PKG                      ?= github.com/ATMackay/checkout
+CONSTANTS_PKG            ?= $(PKG)/constants
+
 
 # Git based version
-VERSION_TAG ?= $(shell git describe --tags)
-GIT_COMMIT ?= $(shell git rev-parse HEAD)
-BUILD_DATE ?= $(shell date -u +'%Y-%m-%d %H:%M:%S')
-COMMIT_DATE ?= $(shell git show -s --format="%ci" $(shell git rev-parse HEAD))
+VERSION_TAG    ?= $(shell git describe --tags)
+GIT_COMMIT     ?= $(shell git rev-parse HEAD)
+BUILD_DATE     ?= $(shell date -u +'%Y-%m-%d %H:%M:%S')
+COMMIT_DATE    ?= $(shell git show -s --format="%ci" $(shell git rev-parse HEAD))
+DIRTY          ?= false
+
+LDFLAGS := -s -w \
+  -X '$(CONSTANTS_PKG).Version=$(VERSION_TAG)' \
+  -X '$(CONSTANTS_PKG).CommitDate=$(COMMIT_DATE)' \
+  -X '$(CONSTANTS_PKG).GitCommit=$(GIT_COMMIT)' \
+  -X '$(CONSTANTS_PKG).BuildDate=$(BUILD_DATE)' \
+  -X '$(CONSTANTS_PKG).Dirty=$(DIRTY)'
 
 build:
-	@GO111MODULE=on go build -o $(BUILD_FOLDER)/checkout \
-	-ldflags=" -X 'github.com/ATMackay/checkout/constants.Version=$(VERSION_TAG)' -X 'github.com/ATMackay/checkout/constants.CommitDate=$(COMMIT_DATE)' -X 'github.com/ATMackay/checkout/constants.BuildDate=$(BUILD_DATE)' -X 'github.com/ATMackay/checkout/constants.GitCommit=$(GIT_COMMIT)'"
-	@echo  "Checkout server successfully built. To run the application execute './$(BUILD_FOLDER)/checkout run'"
+	@mkdir -p build
+	@echo ">> building $(BIN) (version=$(VERSION_TAG) commit=$(GIT_COMMIT) dirty=$(DIRTY))"
+	GO111MODULE=on go build -ldflags "$(LDFLAGS)" -o $(BIN)
+	@echo  "Checkout server successfully built. To run the application execute './$(BIN) run'"
 
 run: build
 	@./$(BUILD_FOLDER)/checkout run --memory-db

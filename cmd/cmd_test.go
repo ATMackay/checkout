@@ -10,3 +10,7 @@ func Test_CheckoutCMD(t *testing.T) {
 	c := NewCheckoutCmd()
 	require.Len(t, c.Commands(), 2)
 }
+
+func Test_BuildDirty(t *testing.T) {
+	require.False(t, buildDirty())
+}

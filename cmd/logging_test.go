@@ -23,8 +23,7 @@ func Test_Logger(t *testing.T) {
 	for _, format := range format {
 		for _, tc := range tests {
 			t.Run(tc.name+format, func(t *testing.T) {
-				err := initLogging(tc.levelStr, format)
-				if (err != nil) != tc.expectErr {
+				if err := initLogging(tc.levelStr, format); (err != nil) != tc.expectErr {
 					t.Errorf("unexpected error %v", err)
 				}
 			})
