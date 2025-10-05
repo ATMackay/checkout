@@ -3,7 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,20 +10,13 @@ import (
 	"github.com/ATMackay/checkout/database/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var testLog = &logrus.Logger{
-	Out:       io.Discard,
-	Formatter: &logrus.TextFormatter{DisableTimestamp: true},
-	Level:     logrus.InfoLevel,
-}
-
 func Test_ServerStartStop(t *testing.T) {
 
-	s := NewServer(8001, testLog, nil, "")
+	s := NewServer(8001, nil, "")
 
 	s.Start()
 	// Wait until server goroutine has initialized
@@ -45,7 +37,7 @@ func Test_ServerEndpoints(t *testing.T) {
 
 	db := mock.NewMockDatabase(ctrl)
 
-	s := NewServer(8001, testLog, db, "")
+	s := NewServer(8001, db, "")
 
 	ctx := context.Background()
 	tests := []struct {

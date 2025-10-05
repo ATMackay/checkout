@@ -103,7 +103,7 @@ func (c *Client) executeJSONRequest(ctx context.Context, method, path string, in
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
 	b, err := io.ReadAll(resp.Body)

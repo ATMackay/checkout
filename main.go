@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/ATMackay/checkout/cmd"
+	"log/slog"
+	"os"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/ATMackay/checkout/cmd"
 )
 
 // @title         Checkout API
@@ -20,6 +21,7 @@ import (
 func main() {
 	command := cmd.NewCheckoutCmd()
 	if err := command.Execute(); err != nil {
-		log.WithError(err).Fatalf("main: execution failed")
+		slog.Error("main: execution failed", "error", err)
+		os.Exit(1)
 	}
 }
