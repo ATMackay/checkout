@@ -14,7 +14,7 @@ import (
 // @Description Returns the status of the service
 // @Tags status
 // @Produce json
-// @Success 200 {object} StatusResponse
+// @Success 200 {object} model.StatusResponse
 // @Failure 500 {object} JSONError
 // @Router /status [get]
 func Status() httprouter.Handle {
@@ -29,8 +29,8 @@ func Status() httprouter.Handle {
 // @Description Checks the health of the service and its dependencies.
 // @Tags health
 // @Produce json
-// @Success 200 {object} HealthResponse
-// @Failure 503 {object} HealthResponse
+// @Success 200 {object} model.HealthResponse
+// @Failure 503 {object} model.HealthResponse
 // @Failure 500 {object} JSONError
 // @Router /health [get]
 func (h *Server) Health() httprouter.Handle {

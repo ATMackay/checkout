@@ -37,12 +37,23 @@ docker:
 docker-run-db:
 	@docker compose -f docker-compose.yml up -d database
 
+openapi-clean:
+	rm -rf ./docs/openapi/*
+	@echo "Deleted docs/openapi/openapi.json"
+
 swag-install:
 	@go install github.com/swaggo/swag/cmd/swag@latest
 	@echo  "Installed swag"
 
-docs: swag-install
-	@swag init -g main.go --output docs/generated
-	@echo "Swagger documentation generated"
+openapi: swag-install
+	@swag init \
+		-g main.go \
+		--parseDependency --parseInternal \
+		-o ./docs/openapi \
+		-ot json
+	@echo "✅ Wrote OpenAPI to docs/openapi/openapi.json"
 
-.PHONY: build run docker test test-coverage docker-run-db swag-install docs
+api-docs: openapi
+	@echo "✅ All docs generated."
+
+.PHONY: build run docker test test-coverage docker-run-db swag-install api-docs
