@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/model"
 	"github.com/ATMackay/checkout/server"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,13 +21,7 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lo := &logrus.Logger{
-		Out:       io.Discard,
-		Formatter: &logrus.TextFormatter{DisableTimestamp: true},
-		Level:     logrus.InfoLevel,
-	}
-	lo.SetLevel(logrus.DebugLevel)
-	s := server.NewServer(8001, lo, db, "1234")
+	s := server.NewServer(8001, db, "1234")
 	s.Start()
 
 	time.Sleep(10 * time.Millisecond)

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 	"github.com/ATMackay/checkout/constants"
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/server"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,10 +30,15 @@ func NewRunCmd() *cobra.Command {
 			useMemoryDB := viper.GetBool("memory-db")
 			recreateSchema := viper.GetBool("memory-db")
 			logLevel := viper.GetString("log-level")
+			logFormat := viper.GetString("log-format")
 			authPassword := viper.GetString("password")
 			//
 			// Execute the main application lifecycle
 			//
+			// Initialize logger
+			if err := initLogging(logLevel, logFormat); err != nil {
+				return fmt.Errorf("failed to initialize logger: %w", err)
+			}
 			// Create New SQL db from flags
 			var db database.Database
 			var err error
@@ -54,23 +59,14 @@ func NewRunCmd() *cobra.Command {
 				return err
 			}
 
-			lvl, err := logrus.ParseLevel(logLevel)
-			if err != nil {
-				return err
-			}
-			log := logrus.StandardLogger()
-			log.SetLevel(lvl)
-
 			// Build Service
-			svc := server.NewServer(port, log, db, authPassword)
+			svc := server.NewServer(port, db, authPassword)
 			// Start the server
-
-			log.WithFields(logrus.Fields{
-				"compilation_date": constants.BuildDate,
-				"commit":           constants.GitCommit,
-				"version":          constants.Version,
-			}).Infof("starting %s", constants.ServiceName)
-
+			slog.Info(fmt.Sprintf("starting %s", constants.ServiceName),
+				"compilation_date", constants.BuildDate,
+				"commit", constants.GitCommit,
+				"version", constants.Version,
+			)
 			svc.Start()
 
 			sigChan := make(chan os.Signal, 1)
@@ -78,9 +74,9 @@ func NewRunCmd() *cobra.Command {
 			signal.Notify(sigChan, os.Interrupt)
 			sig := <-sigChan
 			// Stop server
-			log.WithField("signal", sig).Warn("received shutdown signal")
+			slog.Warn("received shutdown signal", "signal", sig)
 			if err := svc.Stop(); err != nil {
-				log.WithError(err).Error("error while shutting down")
+				slog.Error("error while shutting down", "error", err)
 			}
 
 			return nil
@@ -97,6 +93,7 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().Bool("memory-db", false, "Use in-memory SQLite database")
 	cmd.Flags().Bool("recreate-schema", false, "Recreate DB schema (SQLite)")
 	cmd.Flags().String("log-level", "info", "Log level (debug, info, warn, error, fatal, panic)")
+	cmd.Flags().String("log-format", "text", "Log format (text, json)")
 	cmd.Flags().String("password", "", "Authentication password for protected endpoints")
 
 	// Bind flags to environment variables
@@ -116,6 +113,9 @@ func NewRunCmd() *cobra.Command {
 		panic(err)
 	}
 	if err := viper.BindPFlag("log-level", cmd.Flags().Lookup("log-level")); err != nil {
+		panic(err)
+	}
+	if err := viper.BindPFlag("log-format", cmd.Flags().Lookup("log-format")); err != nil {
 		panic(err)
 	}
 	if err := viper.BindPFlag("password", cmd.Flags().Lookup("password")); err != nil {

@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/sirupsen/logrus"
 )
 
 // Authentication middleware - password in Header.
@@ -44,19 +44,21 @@ func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 		RequestDuration.WithLabelValues(req.Method, req.URL.Path, http.StatusText(httpCode)).Observe(elapsed.Seconds())
 		RequestCount.WithLabelValues(req.Method, req.URL.Path, http.StatusText(httpCode)).Inc()
 
-		// log
-		entry := logrus.WithFields(logrus.Fields{
-			"http_method":     req.Method,
-			"http_code":       httpCode,
-			"elapsed_seconds": elapsed.Seconds(),
-			"url":             req.URL.Path,
-		})
 		// only log full request/response data if running in debug mode or if
 		// the server returned an error response code.
 		if httpCode > 399 {
-			entry.Warn("http Err")
+			slog.Warn("http Err",
+				"http_method", req.Method,
+				"http_code", httpCode,
+				"elapsed", elapsed.Milliseconds(),
+				"url", req.URL.Path,
+			)
 		} else {
-			entry.Debug("served Http Request")
+			slog.Debug("served Http Request",
+				"http_method", req.Method,
+				"http_code", httpCode,
+				"elapsed", elapsed.Milliseconds(),
+				"url", req.URL.Path)
 		}
 	})
 }

@@ -8,20 +8,18 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sync/atomic"
 	"time"
 
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/promotions"
-
-	"github.com/sirupsen/logrus"
 )
 
 // Server handles requests and access to the connected Database.
 type Server struct {
 	server           *http.Server
-	log              logrus.FieldLogger
 	db               database.Database
 	promotionsEngine *promotions.PromotionsEngine
 
@@ -32,8 +30,7 @@ type Server struct {
 
 // NewHTTPServer returns a HTTPServer with httprouter Router
 // handling requests.
-func NewServer(port int, l logrus.FieldLogger, db database.Database, authPasswd string) *Server {
-
+func NewServer(port int, db database.Database, authPasswd string) *Server {
 	srv := &Server{
 		server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", port),
@@ -45,7 +42,6 @@ func NewServer(port int, l logrus.FieldLogger, db database.Database, authPasswd 
 			&promotions.GoogleTVPromotion{},
 			&promotions.AlexaSpeakerPromotion{}, // Add more deals/promotions to the engine
 		),
-		log:          l,
 		authPassword: authPasswd,
 		started:      atomic.Bool{},
 	}
@@ -72,10 +68,10 @@ func (h *Server) Start() {
 	go func() {
 		h.started.Store(true)
 		if err := h.server.ListenAndServe(); err != nil {
-			h.log.WithFields(logrus.Fields{"error": err}).Warn("serverTerminated")
+			slog.Warn("serverTerminated", "error", err)
 		}
 	}()
-	h.log.Infof("listening on port %v", h.Addr())
+	slog.Info("listening on port", "address", h.Addr())
 }
 
 // Stop gracefully shuts down the HTTP server.
