@@ -45,11 +45,11 @@ swag-install:
 	@go install github.com/swaggo/swag/cmd/swag@latest
 	@echo  "Installed swag"
 
-openapi: swag-install
+openapi: swag-install openapi-clean
 	@swag init \
 		-g main.go \
 		--parseDependency --parseInternal \
-		-o ./docs/openapi \
+		-o ./docs/openapi/openapi.json \
 		-ot json
 	@echo "✅ Wrote OpenAPI to docs/openapi/openapi.json"
 
