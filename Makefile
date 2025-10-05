@@ -32,7 +32,7 @@ test-coverage: test
 
 docker:
 	@./build-docker.sh
-	@echo  "To run the application execute 'docker run -p 8000:8000 -e DB_HOST=<DB_HOST> -e DB_PASSWORD=<DB_PASSWORD> checkout'"
+	@echo  "To run the application execute 'docker run -p 8080:8080 -e DB_HOST=<DB_HOST> -e DB_PASSWORD=<DB_PASSWORD> checkout'"
 
 docker-run-db:
 	@docker compose -f docker-compose.yml up -d database
