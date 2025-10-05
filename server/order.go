@@ -12,7 +12,7 @@ import (
 // @Description List all purchase orders
 // @Tags inventory
 // @Produce json
-// @Success 200 {object} Orders
+// @Success 200 {array}  model.Order
 // @Failure 400 {object} JSONError
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError

@@ -32,17 +32,28 @@ test-coverage: test
 
 docker:
 	@./build-docker.sh
-	@echo  "To run the application execute 'docker run -p 8000:8000 -e DB_HOST=<DB_HOST> -e DB_PASSWORD=<DB_PASSWORD> checkout'"
+	@echo  "To run the application execute 'docker run -p 8080:8080 -e DB_HOST=<DB_HOST> -e DB_PASSWORD=<DB_PASSWORD> checkout'"
 
 docker-run-db:
 	@docker compose -f docker-compose.yml up -d database
+
+openapi-clean:
+	rm -rf ./docs/openapi/*
+	@echo "Deleted docs/openapi/openapi.json"
 
 swag-install:
 	@go install github.com/swaggo/swag/cmd/swag@latest
 	@echo  "Installed swag"
 
-docs: swag-install
-	@swag init -g main.go --output docs/generated
-	@echo "Swagger documentation generated"
+openapi: swag-install openapi-clean
+	@swag init \
+		-g main.go \
+		--parseDependency --parseInternal \
+		-o ./docs/openapi/openapi.json \
+		-ot json
+	@echo "✅ Wrote OpenAPI to docs/openapi/openapi.json"
 
-.PHONY: build run docker test test-coverage docker-run-db swag-install docs
+api-docs: openapi
+	@echo "✅ All docs generated."
+
+.PHONY: build run docker test test-coverage docker-run-db swag-install api-docs

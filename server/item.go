@@ -10,17 +10,18 @@ import (
 )
 
 // AddItems godoc
-// @Summary Add new or updated items to the inventory table
-// @Description Add new or updated items
-// @Tags inventory
-// @Accept json
-// @Produce json
-// @Param skus body AddItemsRequest true "List of Items"
-// @Success 200
-// @Failure 400 {object} JSONError
-// @Failure 404 {object} JSONError
-// @Failure 503 {object} JSONError
-// @Router /v0/inventory/items [post]
+// @Summary      Add new or updated items to the inventory table
+// @Description  Add new or updated items
+// @Tags         inventory
+// @Accept       json
+// @Produce      json
+// @Param        request  body   model.AddItemsRequest  true  "List of items"
+// @Success      200      {array}  model.Item
+// @Failure      400      {object} server.JSONError
+// @Failure      404      {object} server.JSONError
+// @Failure      503      {object} server.JSONError
+// @Security     XAuthPassword
+// @Router       /v0/inventory/items [post]
 func (h *Server) AddItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
@@ -58,15 +59,15 @@ func (h *Server) AddItems() httprouter.Handle {
 }
 
 // ItemPrice godoc
-// @Summary Get price for a single item
-// @Description Get price information for a single item by SKU or name
-// @Tags inventory
-// @Produce json
-// @Param key path string true "Item SKU or Name"
-// @Success 200 {object} PriceResponse
-// @Failure 400 {object} JSONError
-// @Failure 404 {object} JSONError
-// @Router /v0/inventory/item/price/{key} [get]
+// @Summary      Get price for a single item
+// @Description  Get price information for a single item by SKU or name
+// @Tags         inventory
+// @Produce      json
+// @Param        key   path      string                true  "Item SKU or Name"
+// @Success      200   {object}  model.PriceResponse
+// @Failure      400   {object}  server.JSONError
+// @Failure      404   {object}  server.JSONError
+// @Router       /v0/inventory/item/price/{key} [get]
 func (h *Server) ItemPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
@@ -100,17 +101,17 @@ func (h *Server) ItemPrice() httprouter.Handle {
 }
 
 // ItemsPrice godoc
-// @Summary Get prices for multiple items
-// @Description Get total price for a batch of items by SKUs
-// @Tags inventory
-// @Accept json
-// @Produce json
-// @Param skus body PriceItemsRequest true "List of SKUs"
-// @Success 200 {object} PriceResponse
-// @Failure 400 {object} JSONError
-// @Failure 404 {object} JSONError
-// @Failure 503 {object} JSONError
-// @Router /v0/inventory/items/price [post]
+// @Summary      Get prices for multiple items
+// @Description  Get total price for a batch of items by SKUs
+// @Tags         inventory
+// @Accept       json
+// @Produce      json
+// @Param        request  body     model.ItemsPriceRequest  true  "List of SKUs"
+// @Success      200      {object} model.PriceResponse
+// @Failure      400      {object} server.JSONError
+// @Failure      404      {object} server.JSONError
+// @Failure      503      {object} server.JSONError
+// @Router       /v0/inventory/items/price [post]
 func (h *Server) ItemsPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 

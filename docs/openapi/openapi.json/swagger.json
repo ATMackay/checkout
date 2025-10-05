@@ -1,23 +1,16 @@
 {
-    "swagger": "2.0",
-    "info": {
-        "title": "Checkout Service API",
-        "version": "1.0.0",
-        "description": "API for managing inventory and orders",
-        "contact": {
-            "name": "API Support",
-            "email": "support@checkout.com"
-        },
-        "license": {
-            "name": "MIT",
-            "url": "https://opensource.org/licenses/MIT"
-        }
-    },
-    "host": "localhost:8000",
-    "basePath": "/",
     "schemes": [
         "http"
     ],
+    "swagger": "2.0",
+    "info": {
+        "description": "API for inventory, pricing and purchases",
+        "title": "Checkout API",
+        "contact": {},
+        "version": "0.1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
     "paths": {
         "/health": {
             "get": {
@@ -33,19 +26,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/HealthResponse"
+                            "$ref": "#/definitions/model.HealthResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/HealthResponse"
+                            "$ref": "#/definitions/model.HealthResponse"
                         }
                     }
                 }
@@ -65,13 +58,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/StatusResponse"
+                            "$ref": "#/definitions/model.StatusResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     }
                 }
@@ -100,19 +93,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/PriceResponse"
+                            "$ref": "#/definitions/model.PriceResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     }
                 }
@@ -120,6 +113,11 @@
         },
         "/v0/inventory/items": {
             "post": {
+                "security": [
+                    {
+                        "XAuthPassword": []
+                    }
+                ],
                 "description": "Add new or updated items",
                 "consumes": [
                     "application/json"
@@ -133,12 +131,12 @@
                 "summary": "Add new or updated items to the inventory table",
                 "parameters": [
                     {
-                        "description": "List of Items",
-                        "name": "items",
+                        "description": "List of items",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/AddItemsRequest"
+                            "$ref": "#/definitions/model.AddItemsRequest"
                         }
                     }
                 ],
@@ -146,25 +144,28 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/PriceResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Item"
+                            }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     }
                 }
@@ -186,11 +187,11 @@
                 "parameters": [
                     {
                         "description": "List of SKUs",
-                        "name": "skus",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/PriceItemsRequest"
+                            "$ref": "#/definitions/model.ItemsPriceRequest"
                         }
                     }
                 ],
@@ -198,25 +199,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/PriceResponse"
+                            "$ref": "#/definitions/model.PriceResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     }
                 }
@@ -238,11 +239,11 @@
                 "parameters": [
                     {
                         "description": "List of SKUs",
-                        "name": "skus",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/PurchaseItemsRequest"
+                            "$ref": "#/definitions/model.PurchaseItemsResponse"
                         }
                     }
                 ],
@@ -250,25 +251,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/PurchaseItemsResponse"
+                            "$ref": "#/definitions/model.PurchaseItemsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     }
                 }
@@ -290,26 +291,26 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/Order"
+                                "$ref": "#/definitions/model.Order"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/JSONError"
+                            "$ref": "#/definitions/server.JSONError"
                         }
                     }
                 }
@@ -317,18 +318,18 @@
         }
     },
     "definitions": {
-        "AddItemsRequest": {
+        "model.AddItemsRequest": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Item"
+                        "$ref": "#/definitions/model.Item"
                     }
                 }
             }
         },
-        "HealthResponse": {
+        "model.HealthResponse": {
             "type": "object",
             "properties": {
                 "failures": {
@@ -345,9 +346,12 @@
                 }
             }
         },
-        "Item": {
+        "model.Item": {
             "type": "object",
             "properties": {
+                "id": {
+                    "type": "integer"
+                },
                 "inventory_quantity": {
                     "type": "integer"
                 },
@@ -362,53 +366,46 @@
                 }
             }
         },
-        "JSONError": {
+        "model.ItemsPriceRequest": {
             "type": "object",
             "properties": {
-                "error": {
-                    "type": "string"
+                "skus": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
-        "Order": {
+        "model.Order": {
             "type": "object",
             "properties": {
                 "cost": {
                     "type": "number"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "reference": {
+                    "description": "Unique random reference",
                     "type": "string"
                 },
-                "skus": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "sku_list": {
+                    "type": "string"
                 }
             }
         },
-        "PriceItemsRequest": {
-            "type": "object",
-            "properties": {
-                "skus": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "PriceResponse": {
+        "model.PriceResponse": {
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Item"
+                        "$ref": "#/definitions/model.Item"
                     }
                 },
                 "promotions": {
-                    "$ref": "#/definitions/Promotions"
+                    "$ref": "#/definitions/model.Promotions"
                 },
                 "total_gross": {
                     "type": "number"
@@ -418,13 +415,13 @@
                 }
             }
         },
-        "Promotions": {
+        "model.Promotions": {
             "type": "object",
             "properties": {
                 "added_items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/Item"
+                        "$ref": "#/definitions/model.Item"
                     }
                 },
                 "deduction": {
@@ -432,18 +429,7 @@
                 }
             }
         },
-        "PurchaseItemsRequest": {
-            "type": "object",
-            "properties": {
-                "skus": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "PurchaseItemsResponse": {
+        "model.PurchaseItemsResponse": {
             "type": "object",
             "properties": {
                 "cost": {
@@ -454,7 +440,7 @@
                 }
             }
         },
-        "StatusResponse": {
+        "model.StatusResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -467,6 +453,21 @@
                     "type": "string"
                 }
             }
+        },
+        "server.JSONError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "XAuthPassword": {
+            "type": "apiKey",
+            "name": "X-Auth-Password",
+            "in": "header"
         }
     }
 }

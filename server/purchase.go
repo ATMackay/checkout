@@ -15,8 +15,8 @@ import (
 // @Tags inventory
 // @Accept json
 // @Produce json
-// @Param skus body PurchaseItemsRequest true "List of SKUs"
-// @Success 200 {object} PurchaseItemsResponse
+// @Param   request  body    model.PurchaseItemsResponse  true  "List of SKUs"
+// @Success 200 {object} model.PurchaseItemsResponse
 // @Failure 400 {object} JSONError
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError

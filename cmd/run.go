@@ -88,7 +88,7 @@ func NewRunCmd() *cobra.Command {
 	}
 
 	// Bind flags and ENV vars
-	cmd.Flags().Int("port", 8000, "Port to run the server on")
+	cmd.Flags().Int("port", 8080, "Port to run the server on")
 	cmd.Flags().String("sqlite", "data/db", "Path to SQLite database file")
 	cmd.Flags().String("db-user", "", "Database user (for non-SQLite databases)")
 	cmd.Flags().String("db-host", "", "Database host (for non-SQLite databases)")
