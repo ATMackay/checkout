@@ -36,7 +36,7 @@ RUN make build
 ############################################################################################################
 
 # Copy binary to a fresh alpine container. Let's keep our images nice and small!
-FROM alpine:3.22
+FROM alpine:3.22.1
 RUN adduser -D -H -u 1010 svcuser && apk add --no-cache ca-certificates
 COPY --from=go_builder /build/checkout /checkout
 COPY LICENSE ./

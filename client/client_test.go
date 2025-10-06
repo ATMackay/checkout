@@ -11,6 +11,7 @@ import (
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/model"
 	"github.com/ATMackay/checkout/server"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,8 +50,8 @@ func TestClient(t *testing.T) {
 		t.Log(*health)
 	})
 
-	it1 := &model.Item{Name: "Google TV", SKU: "120P90", Price: 49.99, InventoryQuantity: 10}
-	it2 := &model.Item{Name: "MacBook Pro", SKU: "43N23P", Price: 5399.99, InventoryQuantity: 5}
+	it1 := &model.Item{Name: "Google TV", SKU: "120P90", Price: decimal.NewFromFloat(49.99), InventoryQuantity: 10}
+	it2 := &model.Item{Name: "MacBook Pro", SKU: "43N23P", Price: decimal.NewFromFloat(5399.99), InventoryQuantity: 5}
 
 	t.Run("add-item", func(t *testing.T) {
 		err := cl.AddItems(ctx, &model.AddItemsRequest{Items: []*model.Item{it1, it2}})
@@ -80,7 +81,7 @@ func TestClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotEqual(t, "", resp.OrderReference)
-		require.Equal(t, it1.Price+it2.Price, resp.Cost)
+		require.Equal(t, it1.Price.Add(it2.Price).InexactFloat64(), resp.Cost)
 		t.Log(*resp)
 	})
 

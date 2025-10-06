@@ -5,13 +5,14 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type Order struct {
-	ID        int     `json:"id,omitempty" gorm:"primaryKey;type:integer"`
-	Reference string  `json:"reference" gorm:"column:reference;type:string;uniqueIndex"` // Unique random reference
-	SKUList   string  `json:"sku_list" gorm:"column:sku_list;type:text"`
-	Price     float64 `json:"cost" gorm:"column:price;type:double"`
+	ID        int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
+	Reference string          `json:"reference" gorm:"column:reference;type:string;uniqueIndex"` // Unique random reference
+	SKUList   string          `json:"sku_list" gorm:"column:sku_list;type:text"`
+	Price     decimal.Decimal `json:"price" gorm:"column:price;type:numeric(12,2)"`
 }
 
 func (o *Order) TableName() string {

@@ -16,7 +16,6 @@ import (
 )
 
 func NewRunCmd() *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: fmt.Sprintf("Start the %s", constants.ServiceName),
@@ -59,19 +58,18 @@ func NewRunCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			// Build Service
-			svc := server.NewServer(port, db, authPassword)
-			// Start the server
+			if isBuildDirty() {
+				// Warn if the build contains uncommitted changes
+				slog.Warn("running a DIRTY build (uncommitted changes present) — do not run in production")
+			}
 			slog.Info(fmt.Sprintf("starting %s", constants.ServiceName),
 				"compilation_date", constants.BuildDate,
 				"commit", constants.GitCommit,
 				"version", constants.Version,
 			)
-			if buildDirty() {
-				// Warn if the build contains uncommitted changes
-				slog.Warn("running a DIRTY build (uncommitted changes present) — do not run in production")
-			}
+			// Build Service
+			svc := server.NewServer(port, db, authPassword)
+			// Start the server
 			svc.Start()
 
 			sigChan := make(chan os.Signal, 1)
@@ -101,36 +99,26 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().String("log-format", "text", "Log format (text, json)")
 	cmd.Flags().String("password", "", "Authentication password for protected endpoints")
 
+	must := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
 	// Bind flags to environment variables
-	if err := viper.BindPFlag("port", cmd.Flags().Lookup("port")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("sqlite", cmd.Flags().Lookup("sqlite")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("db-host", cmd.Flags().Lookup("db-host")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("db-password", cmd.Flags().Lookup("db-password")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("memory-db", cmd.Flags().Lookup("memory-db")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("log-level", cmd.Flags().Lookup("log-level")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("log-format", cmd.Flags().Lookup("log-format")); err != nil {
-		panic(err)
-	}
-	if err := viper.BindPFlag("password", cmd.Flags().Lookup("password")); err != nil {
-		panic(err)
-	}
+	must(viper.BindPFlag("port", cmd.Flags().Lookup("port")))
+	must(viper.BindPFlag("sqlite", cmd.Flags().Lookup("sqlite")))
+	must(viper.BindPFlag("db-host", cmd.Flags().Lookup("db-host")))
+	must(viper.BindPFlag("db-password", cmd.Flags().Lookup("db-password")))
+	must(viper.BindPFlag("memory-db", cmd.Flags().Lookup("memory-db")))
+	must(viper.BindPFlag("log-level", cmd.Flags().Lookup("log-level")))
+	must(viper.BindPFlag("log-format", cmd.Flags().Lookup("log-format")))
+	must(viper.BindPFlag("password", cmd.Flags().Lookup("password")))
 
 	// Set environment variable prefix and read from environment
-	viper.SetEnvPrefix("CHECKOUT") // Environment variables will be prefixed with CHECKOUT_
-	viper.AutomaticEnv()           // Automatically read environment variables
+	viper.SetEnvPrefix(EnvPrefix) // Environment variables will be prefixed with CHECKOUT_
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
+	viper.AutomaticEnv() // Automatically read environment variables
 	return cmd
 }
 
-func buildDirty() bool { return strings.EqualFold(constants.Dirty, "true") }
+func isBuildDirty() bool { return strings.EqualFold(constants.Dirty, "true") }
