@@ -23,6 +23,7 @@ type HealthChecker interface {
 
 type InventoryStore interface {
 	UpsertItems(ctx context.Context, items []*model.Item) ([]*model.Item, error)
+	ListItems(ctx context.Context) ([]*model.Item, error) // TODO - add pagination support
 	GetItemByName(ctx context.Context, name string) (*model.Item, error)
 	GetItemBySKU(ctx context.Context, sku string) (*model.Item, error)
 	GetItemsBySKU(ctx context.Context, sku []string) ([]*model.Item, error)
@@ -104,12 +105,28 @@ func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*model.Ite
 	return it, nil
 }
 
+type searchOpts struct {
+	skus []string
+}
+
+func (g *GormDB) ListItems(ctx context.Context) ([]*model.Item, error) {
+	return g.getItems(ctx, nil)
+}
+
 func (g *GormDB) GetItemsBySKU(ctx context.Context, skus []string) ([]*model.Item, error) {
+	return g.getItems(ctx, &searchOpts{skus: skus})
+}
+
+func (g *GormDB) getItems(ctx context.Context, opts *searchOpts) ([]*model.Item, error) {
 	var it []*model.Item
 
 	db := g.db.WithContext(ctx).Debug()
 
-	if err := db.Where("sku IN ?", skus).Find(&it).Error; err != nil {
+	if opts != nil && len(opts.skus) > 0 {
+		db = db.Where("sku IN ?", opts.skus)
+	}
+
+	if err := db.Find(&it).Error; err != nil {
 		return nil, err
 	}
 

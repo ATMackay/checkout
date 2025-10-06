@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/ATMackay/checkout/database/mock"
-	"github.com/golang/mock/gomock"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_ServerStartStop(t *testing.T) {

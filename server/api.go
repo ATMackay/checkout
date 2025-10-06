@@ -44,6 +44,11 @@ func makeServerAPI(h *Server) *API {
 		// Checkout Application HTTP API
 		//
 		{
+			path:       ItemsEndPnt, // Add new items to the inventory item table
+			methodType: http.MethodGet,
+			handler:    h.ListItems(),
+		},
+		{
 			path:       ItemPriceEndPnt + KeyParam, // Price for single item
 			methodType: http.MethodGet,
 			handler:    h.ItemPrice(),

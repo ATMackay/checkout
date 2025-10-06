@@ -45,6 +45,9 @@ build/coverage:
 test: build/coverage
 	@go test -cover -coverprofile $(UNIT_COVERAGE_OUT) -v ./...
 
+test-integration:
+	@go test -tags=integration -v ./...
+
 test-coverage: test
 	@go tool cover -html=$(UNIT_COVERAGE_OUT)
 
@@ -76,5 +79,9 @@ openapi: swag-install openapi-clean
 
 api-docs: openapi
 	@echo "✅ All docs generated."
+
+generate-mocks:
+	@go install go.uber.org/mock/mockgen@latest
+	@mockgen -source database/database.go -destination ./database/mock/database_mock.go -package mock database
 
 .PHONY: build run docker test test-coverage docker-run-db swag-install api-docs

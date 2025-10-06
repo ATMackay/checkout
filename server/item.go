@@ -10,6 +10,29 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// ListItems godoc
+// @Summary      Returns a list of items in the inventory table
+// @Description  Show all listed inventory items
+// @Tags         inventory
+// @Produce      json
+// @Success      200      {array}  model.Item
+// @Failure      500      {object} server.JSONError
+// @Security     XAuthPassword
+// @Router       /v0/inventory/items [get]
+func (h *Server) ListItems() httprouter.Handle {
+	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		its, err := h.db.ListItems(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if err := respondWithJSON(w, http.StatusOK, its); err != nil {
+			respondWithError(w, http.StatusInternalServerError, err)
+		}
+	})
+}
+
 // AddItems godoc
 // @Summary      Add new or updated items to the inventory table
 // @Description  Add new or updated items
@@ -19,8 +42,9 @@ import (
 // @Param        request  body   model.AddItemsRequest  true  "List of items"
 // @Success      200      {array}  model.Item
 // @Failure      400      {object} server.JSONError
+// @Failure      401      {object} server.JSONError
 // @Failure      404      {object} server.JSONError
-// @Failure      503      {object} server.JSONError
+// @Failure      500      {object} server.JSONError
 // @Security     XAuthPassword
 // @Router       /v0/inventory/items [post]
 func (h *Server) AddItems() httprouter.Handle {
@@ -68,6 +92,7 @@ func (h *Server) AddItems() httprouter.Handle {
 // @Success      200   {object}  model.PriceResponse
 // @Failure      400   {object}  server.JSONError
 // @Failure      404   {object}  server.JSONError
+// @Failure      500      {object} server.JSONError
 // @Router       /v0/inventory/item/price/{key} [get]
 func (h *Server) ItemPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -111,7 +136,7 @@ func (h *Server) ItemPrice() httprouter.Handle {
 // @Success      200      {object} model.PriceResponse
 // @Failure      400      {object} server.JSONError
 // @Failure      404      {object} server.JSONError
-// @Failure      503      {object} server.JSONError
+// @Failure      500      {object} server.JSONError
 // @Router       /v0/inventory/items/price [post]
 func (h *Server) ItemsPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
