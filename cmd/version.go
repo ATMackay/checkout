@@ -16,7 +16,7 @@ func VersionCmd() *cobra.Command {
 			fmt.Println("git commit sha:", constants.GitCommit)
 			fmt.Println("commit timestamp:", constants.CommitDate)
 			fmt.Println("compilation date:", constants.BuildDate)
-			if buildDirty() {
+			if isBuildDirty() {
 				fmt.Println("git tree DIRTY (uncommitted changes in build).")
 			}
 			return nil

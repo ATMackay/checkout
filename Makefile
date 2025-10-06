@@ -16,7 +16,9 @@ VERSION_TAG    ?= $(shell git describe --tags)
 GIT_COMMIT     ?= $(shell git rev-parse HEAD)
 BUILD_DATE     ?= $(shell date -u +'%Y-%m-%d %H:%M:%S')
 COMMIT_DATE    ?= $(shell git show -s --format="%ci" $(shell git rev-parse HEAD))
-DIRTY          ?= false
+ifndef DIRTY
+DIRTY := $(shell if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then echo true; else echo false; fi)
+endif
 
 LDFLAGS := -s -w \
   -X '$(CONSTANTS_PKG).Version=$(VERSION_TAG)' \
@@ -30,6 +32,9 @@ build:
 	@echo ">> building $(BIN) (version=$(VERSION_TAG) commit=$(GIT_COMMIT) dirty=$(DIRTY))"
 	GO111MODULE=on go build -ldflags "$(LDFLAGS)" -o $(BIN)
 	@echo  "Checkout server successfully built. To run the application execute './$(BIN) run'"
+
+install: build
+	mv $(BIN) $(GOBIN)
 
 run: build
 	@./$(BUILD_FOLDER)/checkout run --memory-db
@@ -47,8 +52,11 @@ docker:
 	@./build-docker.sh
 	@echo  "To run the application execute 'docker run -p 8080:8080 -e DB_HOST=<DB_HOST> -e DB_PASSWORD=<DB_PASSWORD> checkout'"
 
-docker-run-db:
-	@docker compose -f docker-compose.yml up -d database
+docker-run-postgres:
+	@docker compose -f docker-compose.yml --profile postgres up --force-recreate
+
+docker-run-sqlite:
+	@docker compose -f docker-compose.yml --profile sqlite up --force-recreate
 
 openapi-clean:
 	rm -rf ./docs/openapi/*

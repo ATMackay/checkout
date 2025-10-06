@@ -5,6 +5,7 @@ import (
 
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/model"
+	"github.com/shopspring/decimal"
 )
 
 // Promotion defines the interface for a promotion strategy.
@@ -50,8 +51,8 @@ func (p *GoogleTVPromotion) Apply(items []*model.Item) (*model.Promotions, error
 
 	for _, item := range items {
 		if item.Name == "Google TV" && itemCounts["Google TV"] >= 3 {
-			discount := float64(itemCounts["Google TV"]/3) * item.Price
-			promotions.Deduction += discount
+			discount := item.Price.Mul(decimal.NewFromInt(int64(itemCounts["Google TV"] / 3)))
+			promotions.Deduction += discount.InexactFloat64()
 		}
 	}
 
@@ -67,7 +68,7 @@ func (p *AlexaSpeakerPromotion) Apply(items []*model.Item) (*model.Promotions, e
 
 	for _, item := range items {
 		if item.Name == "Alexa Speaker" && itemCounts["Alexa Speaker"] > 3 {
-			discount := 0.1 * item.Price * float64(itemCounts["Alexa Speaker"])
+			discount := item.Price.Div(decimal.NewFromInt(10)).InexactFloat64() * float64(itemCounts["Alexa Speaker"])
 			promotions.Deduction += discount
 		}
 	}

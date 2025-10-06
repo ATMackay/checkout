@@ -7,6 +7,7 @@ import (
 
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
+	"github.com/shopspring/decimal"
 )
 
 // PurchaseItems godoc
@@ -65,7 +66,7 @@ func (h *Server) PurchaseItems() httprouter.Handle {
 				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
 				return
 			}
-			total += it.Price
+			total += it.Price.InexactFloat64()
 			// deduct inventory
 			it.InventoryQuantity--
 		}
@@ -98,7 +99,7 @@ func (h *Server) PurchaseItems() httprouter.Handle {
 		price := total - promotions.Deduction
 
 		// Create order
-		order := &model.Order{Price: price, Reference: model.GenerateReference()}
+		order := &model.Order{Price: decimal.NewFromFloat(price), Reference: model.GenerateReference()}
 		if err := order.SetSKUList(skus); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 			return

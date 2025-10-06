@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const EnvPrefix = "CHECKOUT"
+
 func NewCheckoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "checkout [subcommand]",

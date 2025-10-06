@@ -92,8 +92,8 @@ func (h *Server) ItemPrice() httprouter.Handle {
 
 		if err := respondWithJSON(w, http.StatusOK, &model.PriceResponse{
 			Items:             []*model.Item{{Name: dbItem.Name, SKU: dbItem.SKU, Price: dbItem.Price}},
-			TotalGross:        dbItem.Price,
-			TotalWithDiscount: dbItem.Price,
+			TotalGross:        dbItem.Price.InexactFloat64(),
+			TotalWithDiscount: dbItem.Price.InexactFloat64(),
 		}); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
@@ -146,7 +146,7 @@ func (h *Server) ItemsPrice() httprouter.Handle {
 				return
 			}
 			resp.Items = append(resp.Items, it)
-			total += it.Price
+			total += it.Price.InexactFloat64() // TODO - use decimal addition
 		}
 
 		promotions, err := h.promotionsEngine.ApplyPromotions(resp.Items)

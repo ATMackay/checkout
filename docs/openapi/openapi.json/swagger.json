@@ -380,11 +380,11 @@
         "model.Order": {
             "type": "object",
             "properties": {
-                "cost": {
-                    "type": "number"
-                },
                 "id": {
                     "type": "integer"
+                },
+                "price": {
+                    "type": "number"
                 },
                 "reference": {
                     "description": "Unique random reference",

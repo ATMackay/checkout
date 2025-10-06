@@ -12,5 +12,6 @@ func Test_CheckoutCMD(t *testing.T) {
 }
 
 func Test_BuildDirty(t *testing.T) {
-	require.False(t, buildDirty())
+	// Default value is false, overridden by ldflags.
+	require.False(t, isBuildDirty())
 }

@@ -3,14 +3,16 @@ package model
 import (
 	"fmt"
 	"regexp"
+
+	"github.com/shopspring/decimal"
 )
 
 type Item struct {
-	ID                int     `json:"id,omitempty" gorm:"primaryKey;type:integer"`
-	SKU               string  `json:"sku" gorm:"column:sku;type:string;unique"`
-	Name              string  `json:"name" gorm:"column:name;type:string;unique"`
-	Price             float64 `json:"price" gorm:"column:price;type:double"`
-	InventoryQuantity int     `json:"inventory_quantity" gorm:"column:inventory_quantity;type:integer"`
+	ID                int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
+	SKU               string          `json:"sku" gorm:"column:sku;type:string;unique"`
+	Name              string          `json:"name" gorm:"column:name;type:string;unique"`
+	Price             decimal.Decimal `json:"price" gorm:"column:price;type:numeric(12,2)"`
+	InventoryQuantity int             `json:"inventory_quantity" gorm:"column:inventory_quantity;type:integer"`
 }
 
 func (i *Item) TableName() string {
@@ -28,7 +30,7 @@ func (i *Item) Validate() error {
 	if !IsSKU(i.SKU) {
 		return fmt.Errorf("item SKU must be a valid SKU of length 6")
 	}
-	if i.Price < 0 {
+	if i.Price.LessThan(decimal.Zero) {
 		return fmt.Errorf("invalid price less than 0")
 	}
 	if i.InventoryQuantity < 1 {

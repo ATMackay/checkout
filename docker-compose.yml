@@ -1,18 +1,91 @@
 services:
+  # ---------- Postgres DB ----------
   database:
     image: postgres:17.3
     platform: linux/amd64
-    restart: always
+    restart: unless-stopped
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=checkout-db
+      POSTGRES_DB: ${POSTGRES_DB:-checkout}
+      POSTGRES_USER: ${POSTGRES_USER:-checkout}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-checkout}
     ports:
-      - "5433:5432"
+      - "${PG_HOST_PORT:-5433}:5432"     # host:container (override with PG_HOST_PORT)
     volumes:
       - db:/var/lib/postgresql/data
-      - ./initdb:/docker-entrypoint-initdb.d
-    command: [ "postgres", "-c", "log_statement=all", "-c", "log_destination=stderr" ]
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" -h 127.0.0.1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    profiles: ["postgres"]
+
+  # ---------- Checkout app (Postgres) ----------
+  checkout:
+    # (A) Or build locally from the Dockerfile
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: checkout
+        VERSION_TAG: ${VERSION_TAG:-dev}
+    image: checkout:${VERSION_TAG:-dev}
+
+    # (B) Use a prebuilt image (recommended if you're testing images built with CI)
+    # Comment out (A) block and uncomment the line below
+    # image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
+
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["run"]
+    environment:
+      CHECKOUT_DB_HOST: database                        # reference postgres host
+      CHECKOUT_DB_PORT: ${PG_HOST_PORT:-5432}           # DB port
+      CHECKOUT_DB_USER: ${POSTGRES_USER:-checkout}      # App auth password
+      CHECKOUT_DB_PASSWORD: ${POSTGRES_PASSWORD:-checkout}  # DB password (make sure it matches $POSTGRES_PASSWORD) 
+      CHECKOUT_LOG_LEVEL: debug                         # debug logging for testing
+      CHECKOUT_LOG_FORMAT: json                         # Use JSON formatted logs (alternative: 'text')
+      CHECKOUT_PASSWORD: ${PASSWORD:-1234}              # change password if required
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    profiles: ["postgres"]
+
+  # ---------- Checkout app (SQLite) ----------
+  checkout-sqlite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: checkout
+        VERSION_TAG: ${VERSION_TAG:-dev}
+    image: checkout:${VERSION_TAG:-dev}
+    restart: unless-stopped
+    command: ["run"]
+    # If you want to use CLI flags instead of env, uncomment and pass them:
+    # command: ["run", "--sqlite", "/data/db", "--log-level", "${LOG_LEVEL:-debug}", "--password", "${AUTH_PASSWORD:-1234}"]
+    environment:
+      CHECKOUT_SQLITE: /data/checkout.db
+      CHECKOUT_MEMORY_DB: "false"
+      CHECKOUT_RECREATE_SCHEMA: "true"
+    volumes:
+      - appdata:/data
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    profiles: ["sqlite"]
 
 volumes:
   db:
+  appdata:
