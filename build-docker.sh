@@ -50,15 +50,12 @@ echo ">> docker build -t $primary_tag $build_args -f Dockerfile ."
 docker build -t "$primary_tag" $build_args -f Dockerfile .
 
 # Apply the remaining tags
-shift
-for t in "$@"; do
-  docker tag "$primary_tag" "$t"
+for t in "${tags[@]:1}"; do
+  docker tag "${primary_tag}" "${t}"
 done
 
 echo ">> Built tags:"
-for t in $tags; do
-  echo "   $t"
-done
+printf '   %s\n' "${tags[@]}"
        
 # Remove intermediate Docker layers
 docker image prune -f
