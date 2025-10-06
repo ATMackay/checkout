@@ -38,6 +38,7 @@ func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 		start := time.Now()
 		h(statusRecorder, req, p)
 		elapsed := time.Since(start)
+		elapsed_micro := elapsed.Microseconds()
 
 		httpCode := statusRecorder.statusCode
 		// prometheus metrics
@@ -47,17 +48,17 @@ func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 		// only log full request/response data if running in debug mode or if
 		// the server returned an error response code.
 		if httpCode > 399 {
-			slog.Warn("http Err",
+			slog.Warn("http err",
 				"http_method", req.Method,
 				"http_code", httpCode,
-				"elapsed", elapsed.Milliseconds(),
+				"elapsed", elapsed_micro,
 				"url", req.URL.Path,
 			)
 		} else {
-			slog.Debug("served Http Request",
+			slog.Debug("served http request",
 				"http_method", req.Method,
 				"http_code", httpCode,
-				"elapsed", elapsed.Milliseconds(),
+				"elapsed", elapsed_micro,
 				"url", req.URL.Path)
 		}
 	})

@@ -107,11 +107,49 @@
                         "schema": {
                             "$ref": "#/definitions/server.JSONError"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.JSONError"
+                        }
                     }
                 }
             }
         },
         "/v0/inventory/items": {
+            "get": {
+                "security": [
+                    {
+                        "XAuthPassword": []
+                    }
+                ],
+                "description": "Show all listed inventory items",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Returns a list of items in the inventory table",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Item"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.JSONError"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -156,14 +194,20 @@
                             "$ref": "#/definitions/server.JSONError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.JSONError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/server.JSONError"
                         }
                     },
-                    "503": {
-                        "description": "Service Unavailable",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/server.JSONError"
                         }
@@ -214,8 +258,8 @@
                             "$ref": "#/definitions/server.JSONError"
                         }
                     },
-                    "503": {
-                        "description": "Service Unavailable",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/server.JSONError"
                         }
@@ -301,14 +345,20 @@
                             "$ref": "#/definitions/server.JSONError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.JSONError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/server.JSONError"
                         }
                     },
-                    "503": {
-                        "description": "Service Unavailable",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/server.JSONError"
                         }

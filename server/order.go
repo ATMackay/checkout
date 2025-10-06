@@ -14,8 +14,9 @@ import (
 // @Produce json
 // @Success 200 {array}  model.Order
 // @Failure 400 {object} JSONError
+// @Failure 401 {object} JSONError
 // @Failure 404 {object} JSONError
-// @Failure 503 {object} JSONError
+// @Failure 500 {object} JSONError
 // @Router /v0/orders [get]
 func (h *Server) Orders() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

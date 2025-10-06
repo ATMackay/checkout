@@ -6,9 +6,9 @@ import (
 
 	"github.com/ATMackay/checkout/database/mock"
 	"github.com/ATMackay/checkout/model"
-	"github.com/golang/mock/gomock"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestNewEngine(t *testing.T) {
