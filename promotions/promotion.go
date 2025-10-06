@@ -68,8 +68,8 @@ func (p *AlexaSpeakerPromotion) Apply(items []*model.Item) (*model.Promotions, e
 
 	for _, item := range items {
 		if item.Name == "Alexa Speaker" && itemCounts["Alexa Speaker"] > 3 {
-			discount := item.Price.Div(decimal.NewFromInt(10)).InexactFloat64() * float64(itemCounts["Alexa Speaker"])
-			promotions.Deduction += discount
+			discount := item.Price.Mul(decimal.NewFromInt(int64(itemCounts["Alexa Speaker"]))).Mul(decimal.NewFromFloat(0.1))
+			promotions.Deduction += discount.InexactFloat64()
 		}
 	}
 

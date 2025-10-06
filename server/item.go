@@ -7,6 +7,7 @@ import (
 
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
+	"github.com/shopspring/decimal"
 )
 
 // AddItems godoc
@@ -139,14 +140,14 @@ func (h *Server) ItemsPrice() httprouter.Handle {
 		}
 
 		resp := &model.PriceResponse{}
-		var total float64
+		total := decimal.Zero
 		for _, it := range dbItems {
 			if it.InventoryQuantity < 1 {
 				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
 				return
 			}
 			resp.Items = append(resp.Items, it)
-			total += it.Price.InexactFloat64() // TODO - use decimal addition
+			total = total.Add(it.Price)
 		}
 
 		promotions, err := h.promotionsEngine.ApplyPromotions(resp.Items)
@@ -156,8 +157,8 @@ func (h *Server) ItemsPrice() httprouter.Handle {
 		}
 
 		resp.Promotions = promotions
-		resp.TotalGross = total
-		resp.TotalWithDiscount = total - promotions.Deduction
+		resp.TotalGross = total.InexactFloat64()
+		resp.TotalWithDiscount = total.InexactFloat64() - promotions.Deduction
 
 		if err := respondWithJSON(w, http.StatusOK, resp); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
