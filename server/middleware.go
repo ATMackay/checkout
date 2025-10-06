@@ -38,6 +38,7 @@ func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 		start := time.Now()
 		h(statusRecorder, req, p)
 		elapsed := time.Since(start)
+		elapsed_micro := elapsed.Microseconds()
 
 		httpCode := statusRecorder.statusCode
 		// prometheus metrics
@@ -50,14 +51,14 @@ func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 			slog.Warn("http err",
 				"http_method", req.Method,
 				"http_code", httpCode,
-				"elapsed", elapsed.Milliseconds(),
+				"elapsed", elapsed_micro,
 				"url", req.URL.Path,
 			)
 		} else {
 			slog.Debug("served http request",
 				"http_method", req.Method,
 				"http_code", httpCode,
-				"elapsed", elapsed.Milliseconds(),
+				"elapsed", elapsed_micro,
 				"url", req.URL.Path)
 		}
 	})
