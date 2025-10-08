@@ -46,7 +46,8 @@ test: build/coverage
 	@go test -cover -coverprofile $(UNIT_COVERAGE_OUT) -v ./...
 
 test-integration:
-	@go test -tags=integration -v ./...
+	@echo "🧪 Running integration tests..."
+	@go test -v -tags=integration ./integration/... -count=1 -timeout=15m
 
 test-coverage: test
 	@go tool cover -html=$(UNIT_COVERAGE_OUT)
