@@ -2,60 +2,81 @@
 
 package integration
 
-//func Test_ConcurrentWrite(t *testing.T) {
-//	ctx := context.Background()
-//	stack := makeStack(t, ctx, &stackOpts{dbLogs: false, buildFromDockerfile: true, appLogs: true})
-//
-//	// Create simple client pool for concurrent writes
-//	N := 10
-//	clientChan := make(chan *client.Client, N)
-//	for range N {
-//		cl, err := client.New(stack.app.url())
-//		if err != nil {
-//			t.Fatal(err)
-//		}
-//		cl.AddAuthorizationHeader(stack.app.authPsswd)
-//		clientChan <- cl
-//	}
-//
-//	// Spawn go routines to write new items to the database concurrently
-//	writeCount := 1000
-//	errG, gCtx := errgroup.WithContext(ctx)
-//	errG.SetLimit(N)
-//
-//	randSrc := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())))
-//
-//	duration := new(atomic.Int64)
-//
-//	var mu sync.Mutex
-//	for i := range writeCount {
-//		i := i
-//		errG.Go(func() error {
-//			cl := <-clientChan
-//			defer func() {
-//				clientChan <- cl
-//			}()
-//
-//			// generate random item
-//			mu.Lock()
-//			name := fmt.Sprintf("Item-%04d", i)
-//			sku := randomSKU(randSrc)
-//			price := decimal.NewFromFloat(randSrc.Float64()*100 + 1) // 1–100
-//			qty := randSrc.IntN(50) + 1                              // 1–50
-//			mu.Unlock()
-//
-//			start := time.Now()
-//			if err := cl.AddItems(gCtx, &model.AddItemsRequest{Items: []*model.Item{{Name: name, SKU: sku, Price: price, InventoryQuantity: qty}}}); err != nil {
-//				return fmt.Errorf("entry %d: %v", i, err)
-//			}
-//			duration.Add(time.Since(start).Nanoseconds())
-//
-//			return nil
-//		})
-//	}
-//	if err := errG.Wait(); err != nil {
-//		t.Fatal(err)
-//	}
-//	t.Logf("Total execution time for %v writes: %v", writeCount, time.Duration(duration.Load()))
-//	t.Logf("Average write duration: %v ms", decimal.NewFromInt(duration.Load()).Div(decimal.NewFromInt(int64(writeCount*1000*1000))))
-//}
+import (
+	"context"
+	"fmt"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/ATMackay/checkout/client"
+	"github.com/ATMackay/checkout/model"
+	"golang.org/x/sync/errgroup"
+)
+
+func Test_ConcurrentWrite(t *testing.T) {
+	// Make 10 authenticated clients that concurrently write items to our server
+
+	ctx := context.Background()
+
+	// Raise stack
+	stack := makeStack(t, ctx, &stackOpts{dbLogs: true, appLogs: true, buildFromDockerfile: true})
+	baseURL := stack.app.url()
+	// Make client pool
+	poolSize := 10
+	clients := make(chan *client.Client, poolSize)
+	for range poolSize {
+		cl := makeClient(t, baseURL, stack.app.authPsswd)
+		clients <- cl
+	}
+
+	var mu sync.Mutex
+
+	errG, gCtx := errgroup.WithContext(ctx)
+	errG.SetLimit(poolSize)
+
+	// Execute write test
+
+	duration := new(atomic.Int64)
+
+	itemCount := 1000
+	for i := range itemCount {
+		errG.Go(func() error {
+			// Take client from pool
+			cl := <-clients
+			defer func() { clients <- cl }()
+
+			// Make item
+			mu.Lock()
+			it := makeTestItem(i)
+			mu.Unlock()
+			start := time.Now()
+			if err := cl.AddItems(gCtx, &model.AddItemsRequest{Items: []*model.Item{it}}); err != nil {
+				return fmt.Errorf("%d: %w", i, err)
+			}
+			duration.Add(time.Since(start).Nanoseconds())
+			return nil
+		})
+	}
+	if err := errG.Wait(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Log stats
+	t.Logf("Wrote %d items, avg write time %.2fms", itemCount, float64(duration.Load())/float64(itemCount)/1e6)
+
+	// Check items have been added
+
+	cl := <-clients
+
+	res, err := cl.ListItems(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if g, w := len(res), itemCount; g != w {
+		t.Fatalf("unexpected item count: got %v, want %v", g, w)
+	}
+
+}

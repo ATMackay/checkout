@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/ATMackay/checkout/client"
+	"github.com/ATMackay/checkout/model"
+	"github.com/shopspring/decimal"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/log"
 	"github.com/testcontainers/testcontainers-go/network"
@@ -29,7 +31,9 @@ const (
 )
 
 type stack struct {
-	network  *testcontainers.DockerNetwork
+	// Networking
+	network *testcontainers.DockerNetwork
+	// App stack
 	database *pgContainer
 	app      *appContainer
 }
@@ -249,6 +253,19 @@ func makeClient(t *testing.T, baseURL, password string) *client.Client {
 	}
 	cl.AddAuthorizationHeader(password)
 	return cl
+}
+
+func makeTestItem(id int) *model.Item {
+	r := rand.New(rand.NewPCG(uint64(time.Now().Unix()), uint64(time.Now().Unix())))
+	sku := randomSKU(r)
+	price := decimal.NewFromInt(r.Int64N(1000000)).Div(decimal.NewFromInt(100)) // 0.00 - 100.00
+	qty := r.IntN(100)                                                          // 0-100
+	return &model.Item{
+		ID:                id,
+		SKU:               sku,
+		Price:             price,
+		InventoryQuantity: qty,
+	}
 }
 
 func randomSKU(r *rand.Rand) string {

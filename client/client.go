@@ -154,6 +154,14 @@ func (client *Client) AddItems(ctx context.Context, addItemReq *model.AddItemsRe
 	return nil
 }
 
+func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {
+	var its []*model.Item
+	if err := client.executeJSONRequest(ctx, http.MethodGet, server.ItemsEndPnt, nil, its); err != nil {
+		return nil, err
+	}
+	return its, nil
+}
+
 func (client *Client) GetItemPrice(ctx context.Context, key string) (*model.PriceResponse, error) {
 	var itPriceResp model.PriceResponse
 	if err := client.executeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", server.ItemPriceEndPnt, key), nil, &itPriceResp); err != nil {

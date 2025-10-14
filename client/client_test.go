@@ -60,6 +60,14 @@ func TestClient(t *testing.T) {
 		t.Log(*it2)
 	})
 
+	t.Run("list-items", func(t *testing.T) {
+		its, err := cl.ListItems(ctx)
+		require.NoError(t, err)
+		require.NotNil(t, its)
+		require.Len(t, its, 2)
+		t.Log(its)
+	})
+
 	t.Run("get-item-price", func(t *testing.T) {
 		resp, err := cl.GetItemPrice(ctx, it1.SKU)
 		require.NoError(t, err)
