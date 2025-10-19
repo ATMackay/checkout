@@ -20,7 +20,7 @@ func Test_AddInventoryItems(t *testing.T) {
 		{Name: "Raspberry Pi B", SKU: "234234", Price: decimal.NewFromFloat(30.0), InventoryQuantity: 2},
 	}
 
-	ctx, cancelFn := context.WithTimeout(context.Background(), 600*time.Second) // Set hard limit of 5 minutes
+	ctx, cancelFn := context.WithTimeout(context.Background(), 600*time.Second) // Set hard limit of 10 minutes
 	defer cancelFn()
 
 	stack := makeStack(t, ctx, &stackOpts{dbLogs: true, buildFromDockerfile: true, appLogs: true}) // Modify logging options as required

@@ -156,7 +156,7 @@ func (client *Client) AddItems(ctx context.Context, addItemReq *model.AddItemsRe
 
 func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {
 	var its []*model.Item
-	if err := client.executeJSONRequest(ctx, http.MethodGet, server.ItemsEndPnt, nil, its); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, server.ItemsEndPnt, nil, &its); err != nil {
 		return nil, err
 	}
 	return its, nil
