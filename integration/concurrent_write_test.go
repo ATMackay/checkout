@@ -17,7 +17,6 @@ import (
 
 func Test_ConcurrentWrite(t *testing.T) {
 	// Make 10 authenticated clients that concurrently write items to our server
-
 	ctx := context.Background()
 
 	// Raise stack

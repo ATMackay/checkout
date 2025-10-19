@@ -55,7 +55,7 @@ func makeStack(t *testing.T, ctx context.Context, opts *stackOpts) *stack {
 	// 2) Spin up Postgres container
 	t.Log("Initializing postgres")
 	pg := startPostgres(t, ctx, net.Name, opts.dbLogs)
-	t.Logf("Potgres DB created: db=%s, user=%s", pg.db, pg.user)
+	t.Logf("Postgres DB created: db=%s, user=%s", pg.db, pg.user)
 
 	// 2) Build and start checkout app (built from Dockerfile)
 	// Add PG container network details when wiring the app
@@ -89,7 +89,7 @@ func createNetwork(t *testing.T, ctx context.Context) *testcontainers.DockerNetw
 		t.Fatalf("failed to create network: %v", err)
 	}
 	t.Cleanup(func() {
-		_ = net.Remove(ctx)
+		_ = net.Remove(context.Background())
 	})
 	return net
 }
@@ -206,8 +206,17 @@ func createCheckoutAppContainer(t *testing.T,
 			},
 		}
 	} else {
-		// Try locally build image with 'latest' tag
-		req.Image = "checkout:latest"
+		// Try locally build image - defaults to 'latest' tag
+		cli, err := testcontainers.NewDockerClientWithOpts(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		imgName := "checkout"
+		img, err := cli.ImageInspect(ctx, imgName)
+		if err != nil {
+			t.Fatalf("image not found: %v\n", err)
+		}
+		req.Image = img.ID
 	}
 	if withLogger {
 		// ⬇️ Stream container logs to the test output
@@ -225,7 +234,7 @@ func createCheckoutAppContainer(t *testing.T,
 	if err != nil {
 		t.Fatalf("start checkout app: %v", err)
 	}
-	t.Cleanup(func() { _ = ctr.Terminate(ctx) })
+	t.Cleanup(func() { _ = ctr.Terminate(context.Background()) })
 
 	host, err := ctr.Host(ctx)
 	if err != nil {
@@ -263,6 +272,7 @@ func makeTestItem(id int) *model.Item {
 	return &model.Item{
 		ID:                id,
 		SKU:               sku,
+		Name:              fmt.Sprintf("item-%s-%d", strings.ToLower(sku), id),
 		Price:             price,
 		InventoryQuantity: qty,
 	}

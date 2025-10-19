@@ -24,17 +24,17 @@ services:
   # ---------- Checkout app (Postgres) ----------
   checkout:
     # (A) Or build locally from the Dockerfile
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE: checkout
-        VERSION_TAG: ${VERSION_TAG:-dev}
-    image: checkout:${VERSION_TAG:-dev}
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    #  args:
+    #    SERVICE: checkout
+    #    VERSION_TAG: ${VERSION_TAG:-dev}
+    #image: checkout:${VERSION_TAG:-dev}
 
     # (B) Use a prebuilt image (recommended if you're testing images built with CI)
     # Comment out (A) block and uncomment the line below
-    # image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
+    image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
 
     depends_on:
       database:
@@ -60,13 +60,18 @@ services:
 
   # ---------- Checkout app (SQLite) ----------
   checkout-sqlite:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        SERVICE: checkout
-        VERSION_TAG: ${VERSION_TAG:-dev}
-    image: checkout:${VERSION_TAG:-dev}
+    # (A) Or build locally from the Dockerfile
+    #build:
+    #  context: .
+    #  dockerfile: Dockerfile
+    #  args:
+    #    SERVICE: checkout
+    #    VERSION_TAG: ${VERSION_TAG:-dev}
+    #image: checkout:${VERSION_TAG:-dev}
+
+    # (B) Use a prebuilt image (recommended if you're testing images built with CI)
+    # Comment out (A) block and uncomment the line below
+    image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
     restart: unless-stopped
     command: ["run"]
     # If you want to use CLI flags instead of env, uncomment and pass them:
