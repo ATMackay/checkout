@@ -42,8 +42,8 @@ type stackOpts struct {
 	// DB
 	dbLogs bool
 	// Checkout App
-	buildFromDockerfile bool
-	appLogs             bool
+	appLogs bool
+	debug   bool
 }
 
 func makeStack(t *testing.T, ctx context.Context, opts *stackOpts) *stack {
@@ -60,7 +60,7 @@ func makeStack(t *testing.T, ctx context.Context, opts *stackOpts) *stack {
 	// 2) Build and start checkout app (built from Dockerfile)
 	// Add PG container network details when wiring the app
 	t.Log("Building checkout server")
-	app := createCheckoutAppContainer(t, ctx, net, pg, opts.buildFromDockerfile, opts.appLogs)
+	app := createCheckoutAppContainer(t, ctx, net, pg, opts.appLogs, opts.debug)
 	t.Logf("created server listening on URL: %s", app.url())
 	return &stack{
 		network:  net,
@@ -171,9 +171,13 @@ func createCheckoutAppContainer(t *testing.T,
 	ctx context.Context,
 	net *testcontainers.DockerNetwork,
 	pg *pgContainer,
-	buildFromDockerfile bool,
+	debugLogs bool,
 	withLogger bool,
 ) *appContainer {
+	logLevel := "info"
+	if debugLogs {
+		logLevel = "debug"
+	}
 	req := &testcontainers.ContainerRequest{
 		ExposedPorts: []string{testHTTPPort},
 		Env: map[string]string{
@@ -181,7 +185,7 @@ func createCheckoutAppContainer(t *testing.T,
 			"CHECKOUT_DB_PORT":     "5432",
 			"CHECKOUT_DB_USER":     pg.user,
 			"CHECKOUT_DB_PASSWORD": pg.pass,
-			"CHECKOUT_LOG_LEVEL":   "debug",
+			"CHECKOUT_LOG_LEVEL":   logLevel,
 			"CHECKOUT_LOG_FORMAT":  "text",
 			"CHECKOUT_PASSWORD":    testAuthPassword,
 		},
@@ -192,7 +196,16 @@ func createCheckoutAppContainer(t *testing.T,
 			WithPort(testHTTPPort).
 			WithStartupTimeout(60 * time.Second),
 	}
-	if buildFromDockerfile {
+	// Try locally build image - defaults to 'latest' tag
+	cli, err := testcontainers.NewDockerClientWithOpts(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imgName := "checkout"
+	img, err := cli.ImageInspect(ctx, imgName)
+	if err != nil {
+		t.Logf("image not found: %v\n", err)
+		// Try build from Dockerfile as backup
 		req.FromDockerfile = testcontainers.FromDockerfile{
 			Context:    "..",
 			Dockerfile: "Dockerfile",
@@ -206,16 +219,6 @@ func createCheckoutAppContainer(t *testing.T,
 			},
 		}
 	} else {
-		// Try locally build image - defaults to 'latest' tag
-		cli, err := testcontainers.NewDockerClientWithOpts(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		imgName := "checkout"
-		img, err := cli.ImageInspect(ctx, imgName)
-		if err != nil {
-			t.Fatalf("image not found: %v\n", err)
-		}
 		req.Image = img.ID
 	}
 	if withLogger {
@@ -265,10 +268,11 @@ func makeClient(t *testing.T, baseURL, password string) *client.Client {
 }
 
 func makeTestItem(id int) *model.Item {
-	r := rand.New(rand.NewPCG(uint64(time.Now().Unix()), uint64(time.Now().Unix())))
-	sku := randomSKU(r)
-	price := decimal.NewFromInt(r.Int64N(1000000)).Div(decimal.NewFromInt(100)) // 0.00 - 100.00
-	qty := r.IntN(100)                                                          // 0-100
+	// r := rand.New(rand.NewPCG(uint64(time.Now().Unix()), uint64(time.Now().Unix())))
+	// rand.IntN()
+	sku := randomSKU()
+	price := decimal.NewFromInt(rand.Int64N(1000000)).Div(decimal.NewFromInt(100)) // 0.00 - 100.00
+	qty := max(1, rand.IntN(100))                                                  // 0-100
 	return &model.Item{
 		ID:                id,
 		SKU:               sku,
@@ -278,11 +282,11 @@ func makeTestItem(id int) *model.Item {
 	}
 }
 
-func randomSKU(r *rand.Rand) string {
+func randomSKU() string {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, 6)
 	for i := range b {
-		b[i] = charset[r.IntN(len(charset))]
+		b[i] = charset[rand.IntN(len(charset))]
 	}
 	return string(b)
 }
