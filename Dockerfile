@@ -31,7 +31,12 @@ WORKDIR /
 COPY . .
 
 # Build
-RUN make build
+RUN make build \
+  VERSION_TAG="${VERSION_TAG}" \
+  GIT_COMMIT="${GIT_COMMIT}" \
+  COMMIT_DATE="${COMMIT_DATE}" \
+  BUILD_DATE="${BUILD_DATE}" \
+  DIRTY="${DIRTY}"
 
 ############################################################################################################
 
