@@ -171,8 +171,8 @@ func createCheckoutAppContainer(t *testing.T,
 	ctx context.Context,
 	net *testcontainers.DockerNetwork,
 	pg *pgContainer,
-	debugLogs bool,
 	withLogger bool,
+	debugLogs bool,
 ) *appContainer {
 	logLevel := "info"
 	if debugLogs {

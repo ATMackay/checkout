@@ -23,7 +23,7 @@ func Test_AddInventoryItems(t *testing.T) {
 	ctx, cancelFn := context.WithTimeout(context.Background(), 600*time.Second) // Set hard limit of 10 minutes
 	defer cancelFn()
 
-	stack := makeStack(t, ctx, &stackOpts{dbLogs: true, appLogs: true}) // Modify logging options as required
+	stack := makeStack(t, ctx, &stackOpts{dbLogs: false, appLogs: true, debug: false}) // Modify logging options as required
 
 	// 4) Create Client
 	baseURL := stack.app.url()

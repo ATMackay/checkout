@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -20,10 +21,10 @@ func Test_ConcurrentWrite(t *testing.T) {
 	ctx := context.Background()
 
 	// Raise stack
-	stack := makeStack(t, ctx, &stackOpts{dbLogs: false, appLogs: true})
+	stack := makeStack(t, ctx, &stackOpts{dbLogs: false, appLogs: true, debug: false})
 	baseURL := stack.app.url()
 	// Make client pool
-	poolSize := 10
+	poolSize := max(1, rand.IntN(10))
 	clients := make(chan *client.Client, poolSize)
 	for range poolSize {
 		cl := makeClient(t, baseURL, stack.app.authPsswd)
@@ -33,7 +34,7 @@ func Test_ConcurrentWrite(t *testing.T) {
 	var mu sync.Mutex
 
 	errG, gCtx := errgroup.WithContext(ctx)
-	errG.SetLimit(poolSize)
+	// errG.SetLimit(poolSize)
 
 	// Execute write test
 
@@ -62,8 +63,10 @@ func Test_ConcurrentWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	dur := duration.Load()
+
 	// Log stats
-	t.Logf("Wrote %d items, avg write time %.2fms", itemCount, float64(duration.Load())/float64(itemCount)/1e6)
+	t.Logf("Wrote %d items in %vs, avg write time %.2fms", itemCount, float64(dur)/1e9, float64(dur)/float64(itemCount)/1e6)
 
 	// Check items have been added
 
