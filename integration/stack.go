@@ -217,6 +217,7 @@ func createCheckoutAppContainer(t *testing.T,
 				"BUILD_DATE":  strPtr(os.Getenv("BUILD_DATE")),
 				"DIRTY":       strPtr(os.Getenv("DIRTY")),
 			},
+			KeepImage: true, // keep image for faster rebuilds
 		}
 	} else {
 		req.Image = img.ID
