@@ -9,7 +9,7 @@ SERVICE=${SERVICE:-checkout}
 # Git info
 commit_hash="$(git rev-parse HEAD)"
 commit_hash_short="$(git rev-parse --short=12 HEAD)"
-commit_timestamp="$(git show -s --format=%cI "${commit_hash}")"     
+commit_timestamp="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%M:%SZ "${commit_hash}")"     
 build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"                        
 
 # Base tag from Git
