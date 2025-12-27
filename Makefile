@@ -15,7 +15,7 @@ CONSTANTS_PKG            ?= $(PKG)/constants
 VERSION_TAG    ?= $(shell git describe --tags)
 GIT_COMMIT     ?= $(shell git rev-parse HEAD)
 BUILD_DATE     ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-COMMIT_DATE ?= $(shell TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%M:%SZ HEAD)
+COMMIT_DATE    ?= $(shell TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%M:%SZ HEAD)
 ifndef DIRTY
 DIRTY := $(shell if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then echo true; else echo false; fi)
 endif
