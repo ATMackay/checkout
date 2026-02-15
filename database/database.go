@@ -15,6 +15,7 @@ type Database interface {
 	HealthChecker
 	InventoryStore
 	OrderStore
+	Transaction(ctx context.Context, fn func(Database) error) error
 }
 
 type HealthChecker interface {
@@ -59,20 +60,20 @@ func NewGormDB(d gorm.Dialector, recreateSchema bool) (*GormDB, error) {
 
 func newStorage(db *gorm.DB) (*GormDB, error) {
 	if err := db.AutoMigrate(&model.Item{}); err != nil {
-		return nil, fmt.Errorf("failed to auto migrate gormDeposit: %w", err)
+		return nil, fmt.Errorf("failed to auto migrate inventory table: %w", err)
 	}
 	if err := db.AutoMigrate(&model.Order{}); err != nil {
-		return nil, fmt.Errorf("failed to auto migrate gormDeposit: %w", err)
+		return nil, fmt.Errorf("failed to auto migrate orders table: %w", err)
 	}
 	return &GormDB{db}, nil
 }
 
 func deleteStorage(db *gorm.DB) error {
 	if err := db.Migrator().DropTable(&model.Item{}); err != nil {
-		return fmt.Errorf("failed to drop table gormDeposit: %w", err)
+		return fmt.Errorf("failed to drop table inventory: %w", err)
 	}
 	if err := db.Migrator().DropTable(&model.Order{}); err != nil {
-		return fmt.Errorf("failed to drop table gormDeposit: %w", err)
+		return fmt.Errorf("failed to drop table orders: %w", err)
 	}
 	return nil
 }
@@ -98,7 +99,7 @@ func (g *GormDB) getItemByKey(ctx context.Context, key, name string) (*model.Ite
 
 	var it *model.Item
 
-	if err := g.db.WithContext(ctx).Where(key, name).Find(&it).Error; err != nil {
+	if err := g.db.WithContext(ctx).Where(key+" = ?", name).Find(&it).Error; err != nil {
 		return nil, err
 	}
 
@@ -120,7 +121,7 @@ func (g *GormDB) GetItemsBySKU(ctx context.Context, skus []string) ([]*model.Ite
 func (g *GormDB) getItems(ctx context.Context, opts *searchOpts) ([]*model.Item, error) {
 	var it []*model.Item
 
-	db := g.db.WithContext(ctx).Debug()
+	db := g.db.WithContext(ctx)
 
 	if opts != nil && len(opts.skus) > 0 {
 		db = db.Where("sku IN ?", opts.skus)
@@ -155,4 +156,10 @@ func (g *GormDB) GetOrders(ctx context.Context) ([]*model.Order, error) {
 	}
 
 	return os, nil
+}
+
+func (g *GormDB) Transaction(ctx context.Context, fn func(Database) error) error {
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(&GormDB{db: tx})
+	})
 }

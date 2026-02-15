@@ -148,10 +148,7 @@ func (client *Client) Health(ctx context.Context) (*model.HealthResponse, error)
 }
 
 func (client *Client) AddItems(ctx context.Context, addItemReq *model.AddItemsRequest) error {
-	if err := client.executeJSONRequest(ctx, http.MethodPost, server.ItemsEndPnt, addItemReq, nil); err != nil {
-		return err
-	}
-	return nil
+	return client.executeJSONRequest(ctx, http.MethodPost, server.ItemsEndPnt, addItemReq, nil)
 }
 
 func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {

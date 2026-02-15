@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	database "github.com/ATMackay/checkout/database"
 	model "github.com/ATMackay/checkout/model"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -142,6 +143,20 @@ func (m *MockDatabase) Ping(ctx context.Context) error {
 func (mr *MockDatabaseMockRecorder) Ping(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockDatabase)(nil).Ping), ctx)
+}
+
+// Transaction mocks base method.
+func (m *MockDatabase) Transaction(ctx context.Context, fn func(database.Database) error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Transaction", ctx, fn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Transaction indicates an expected call of Transaction.
+func (mr *MockDatabaseMockRecorder) Transaction(ctx, fn any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Transaction", reflect.TypeOf((*MockDatabase)(nil).Transaction), ctx, fn)
 }
 
 // UpsertItems mocks base method.

@@ -30,7 +30,7 @@ func TestPromotions(t *testing.T) {
 			{Name: "Google TV", SKU: "GoogleTV", Price: decimal.NewFromFloat(49.99)},
 			{Name: "Alexa Speaker", SKU: "AlexaSpeaker", Price: decimal.NewFromFloat(109.50)},
 		}
-		promotions, err := e.ApplyPromotions(items)
+		promotions, err := e.ApplyPromotions(context.Background(), items)
 		require.NoError(t, err)
 		require.NotNil(t, promotions)
 		require.Equal(t, []*model.Item{it}, promotions.AddedItems)

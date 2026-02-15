@@ -100,6 +100,8 @@ func Test_ServerEndpoints(t *testing.T) {
 			rr := httptest.NewRecorder()
 
 			tc.handlerFunc(rr, req, tc.paramFunc())
+
+			assert.Equal(t, tc.expectedResponseCode, rr.Code)
 		})
 	}
 }

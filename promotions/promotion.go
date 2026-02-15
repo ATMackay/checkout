@@ -10,7 +10,7 @@ import (
 
 // Promotion defines the interface for a promotion strategy.
 type Promotion interface {
-	Apply(items []*model.Item) (*model.Promotions, error)
+	Apply(ctx context.Context, items []*model.Item) (*model.Promotions, error)
 }
 
 // MacBookProPromotion adds a free Raspberry Pi B for each MacBook Pro.
@@ -22,12 +22,12 @@ func NewMacBookProPromotion(db database.Database) *MacBookProPromotion {
 	return &MacBookProPromotion{db: db}
 }
 
-func (p *MacBookProPromotion) Apply(items []*model.Item) (*model.Promotions, error) {
+func (p *MacBookProPromotion) Apply(ctx context.Context, items []*model.Item) (*model.Promotions, error) {
 	promotions := &model.Promotions{}
 	itemCounts := countItemsByName(items)
 
 	if n, ok := itemCounts["MacBook Pro"]; ok {
-		it, err := p.db.GetItemByName(context.Background(), "Raspberry Pi B")
+		it, err := p.db.GetItemByName(ctx, "Raspberry Pi B")
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +45,7 @@ func (p *MacBookProPromotion) Apply(items []*model.Item) (*model.Promotions, err
 // GoogleTVPromotion applies a "Buy 3 for the price of 2" discount.
 type GoogleTVPromotion struct{}
 
-func (p *GoogleTVPromotion) Apply(items []*model.Item) (*model.Promotions, error) {
+func (p *GoogleTVPromotion) Apply(ctx context.Context, items []*model.Item) (*model.Promotions, error) {
 	promotions := &model.Promotions{}
 	itemCounts := countItemsByName(items)
 
@@ -62,7 +62,7 @@ func (p *GoogleTVPromotion) Apply(items []*model.Item) (*model.Promotions, error
 // AlexaSpeakerPromotion applies a 10% discount if more than 3 are bought.
 type AlexaSpeakerPromotion struct{}
 
-func (p *AlexaSpeakerPromotion) Apply(items []*model.Item) (*model.Promotions, error) {
+func (p *AlexaSpeakerPromotion) Apply(ctx context.Context, items []*model.Item) (*model.Promotions, error) {
 	promotions := &model.Promotions{}
 	itemCounts := countItemsByName(items)
 

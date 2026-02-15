@@ -28,7 +28,7 @@ type Server struct {
 	started atomic.Bool
 }
 
-// NewHTTPServer returns a HTTPServer with httprouter Router
+// NewServer returns a Server with httprouter Router
 // handling requests.
 func NewServer(port int, db database.Database, authPasswd string) *Server {
 	srv := &Server{
@@ -43,7 +43,6 @@ func NewServer(port int, db database.Database, authPasswd string) *Server {
 			&promotions.AlexaSpeakerPromotion{}, // Add more deals/promotions to the engine
 		),
 		authPassword: authPasswd,
-		started:      atomic.Bool{},
 	}
 
 	srv.registerHandlers()

@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -128,7 +129,9 @@ func respondWithJSON(w http.ResponseWriter, code int, payload any) error {
 }
 
 func respondWithError(w http.ResponseWriter, code int, err error) {
-	_ = respondWithJSON(w, code, JSONError{Error: err.Error()})
+	if writeErr := respondWithJSON(w, code, JSONError{Error: err.Error()}); writeErr != nil {
+		slog.Error("failed to write error response", "error", writeErr, "original_error", err)
+	}
 }
 
 type JSONError struct {
