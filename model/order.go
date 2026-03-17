@@ -2,7 +2,7 @@ package model
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -25,7 +25,7 @@ type Orders []Order
 func (o *Order) GetSKUList() ([]string, error) {
 	var skuList []string
 	if err := json.Unmarshal([]byte(o.SKUList), &skuList); err != nil {
-		return nil, errors.New("failed to unmarshal SKU list")
+		return nil, fmt.Errorf("failed to unmarshal SKU list: %w", err)
 	}
 	return skuList, nil
 }
@@ -34,7 +34,7 @@ func (o *Order) GetSKUList() ([]string, error) {
 func (o *Order) SetSKUList(skuList []string) error {
 	skuListJSON, err := json.Marshal(skuList)
 	if err != nil {
-		return errors.New("failed to marshal SKU list")
+		return fmt.Errorf("failed to marshal SKU list: %w", err)
 	}
 	o.SKUList = string(skuListJSON)
 	return nil

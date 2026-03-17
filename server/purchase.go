@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
@@ -52,7 +53,7 @@ func (h *Server) PurchaseItems() httprouter.Handle {
 		dbItemMap := make(map[string]*model.Item)
 
 		items := []*model.Item{}
-		var total float64
+		total := decimal.Zero
 		for _, dbIt := range dbItems {
 			dbItemMap[dbIt.SKU] = dbIt
 			items = append(items, dbIt)
@@ -66,14 +67,14 @@ func (h *Server) PurchaseItems() httprouter.Handle {
 				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
 				return
 			}
-			total += it.Price.InexactFloat64()
+			total = total.Add(it.Price)
 			// deduct inventory
 			it.InventoryQuantity--
 		}
 
 		skus := pReq.SKUs
 
-		promotions, err := h.promotionsEngine.ApplyPromotions(items)
+		promotions, err := h.promotionsEngine.ApplyPromotions(ctx, items)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not apply promotion/deals: %w", err))
 			return
@@ -96,26 +97,33 @@ func (h *Server) PurchaseItems() httprouter.Handle {
 			skus = append(pReq.SKUs, sku)
 		}
 
-		price := total - promotions.Deduction
+		price := total.Sub(decimal.NewFromFloat(promotions.Deduction))
 
 		// Create order
-		order := &model.Order{Price: decimal.NewFromFloat(price), Reference: model.GenerateReference()}
+		order := &model.Order{Price: price, Reference: model.GenerateReference()}
 		if err := order.SetSKUList(skus); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
-		if err := h.db.AddOrder(ctx, order); err != nil {
+
+		// Execute purchase in a transaction to ensure atomicity
+		err = h.db.Transaction(ctx, func(tx database.Database) error {
+			// Save updated dbItems with new inventory totals
+			if _, err := tx.UpsertItems(ctx, items); err != nil {
+				return fmt.Errorf("failed to update inventory: %w", err)
+			}
+			// Create order
+			if err := tx.AddOrder(ctx, order); err != nil {
+				return fmt.Errorf("failed to create order: %w", err)
+			}
+			return nil
+		})
+		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		// Save updated dbItems with new inventory totals
-		if _, err := h.db.UpsertItems(ctx, items); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		if err := respondWithJSON(w, http.StatusOK, &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price}); err != nil {
+		if err := respondWithJSON(w, http.StatusOK, &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price.InexactFloat64()}); err != nil {
 			respondWithError(w, http.StatusInternalServerError, err)
 		}
 	})

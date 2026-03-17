@@ -1,6 +1,10 @@
 package promotions
 
-import "github.com/ATMackay/checkout/model"
+import (
+	"context"
+
+	"github.com/ATMackay/checkout/model"
+)
 
 // PromotionsEngine applies all registered promotions.
 type PromotionsEngine struct {
@@ -15,11 +19,11 @@ func NewPromotionsEngine(promotions ...Promotion) *PromotionsEngine {
 }
 
 // ApplyPromotions applies all registered promotions to the items.
-func (e *PromotionsEngine) ApplyPromotions(items []*model.Item) (*model.Promotions, error) {
+func (e *PromotionsEngine) ApplyPromotions(ctx context.Context, items []*model.Item) (*model.Promotions, error) {
 	result := &model.Promotions{}
 
 	for _, promotion := range e.promotions {
-		p, err := promotion.Apply(items)
+		p, err := promotion.Apply(ctx, items)
 		if err != nil {
 			return nil, err
 		}

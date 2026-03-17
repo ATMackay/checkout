@@ -81,8 +81,8 @@ openapi: swag-install openapi-clean
 api-docs: openapi
 	@echo "✅ All docs generated."
 
-generate-mocks:
+mocks:
 	@go install go.uber.org/mock/mockgen@latest
 	@mockgen -source database/database.go -destination ./database/mock/database_mock.go -package mock database
 
-.PHONY: build run docker test test-coverage docker-run-db swag-install api-docs
+.PHONY: build run docker test test-coverage docker-run-db swag-install openapi api-docs mocks

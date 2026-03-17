@@ -7,6 +7,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+var skuRegex = regexp.MustCompile(`^[a-zA-Z0-9]{6}$`)
+
 type Item struct {
 	ID                int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
 	SKU               string          `json:"sku" gorm:"column:sku;type:string;unique"`
@@ -41,13 +43,7 @@ func (i *Item) Validate() error {
 
 // IsSKU checks if the input string is an SKU
 func IsSKU(input string) bool {
-	// Define a regex pattern for SKUs (alphanumeric, no spaces, 6 characters)
-	skuPattern := `^[a-zA-Z0-9]{6,6}$`
-	matched, err := regexp.MatchString(skuPattern, input)
-	if err != nil {
-		return false
-	}
-	return matched
+	return skuRegex.MatchString(input)
 }
 
 type PurchaseItemsRequest struct {

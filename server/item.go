@@ -57,7 +57,7 @@ func (h *Server) AddItems() httprouter.Handle {
 			return
 		}
 
-		if len(iReq.Items) < 1 {
+		if len(iReq.Items) == 0 {
 			respondWithError(w, http.StatusBadRequest, fmt.Errorf("no items provided"))
 			return
 		}
@@ -175,7 +175,7 @@ func (h *Server) ItemsPrice() httprouter.Handle {
 			total = total.Add(it.Price)
 		}
 
-		promotions, err := h.promotionsEngine.ApplyPromotions(resp.Items)
+		promotions, err := h.promotionsEngine.ApplyPromotions(ctx, resp.Items)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not apply promotion/deals: %w", err))
 			return
