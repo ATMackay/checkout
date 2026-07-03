@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	// RequestDuration stores HTTP request execution duration data to be served by the Prometheus metrics server.
+	// RequestDuration stores HTTP request execution duration data to be served by the Prometheus metrics service.
 	RequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",

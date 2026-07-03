@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ func Status() httprouter.Handle {
 // @Failure 503 {object} model.HealthResponse
 // @Failure 500 {object} JSONError
 // @Router /health [get]
-func (h *Server) Health() httprouter.Handle {
+func (h *Service) Health() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		health := &model.HealthResponse{
 			Service: constants.ServiceName,

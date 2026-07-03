@@ -3,7 +3,7 @@
 // @description API for managing inventory and orders
 // @host localhost:8000
 // @BasePath /
-package server
+package service
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 	"github.com/ATMackay/checkout/promotions"
 )
 
-// Server handles requests and access to the connected Database.
-type Server struct {
-	server           *http.Server
+// Service executes business logic, handles requests, and provides access to the connected Database.
+type Service struct {
+	service          *http.Server
 	db               database.Database
 	promotionsEngine *promotions.PromotionsEngine
 
@@ -28,11 +28,11 @@ type Server struct {
 	started atomic.Bool
 }
 
-// NewServer returns a Server with httprouter Router
+// NewService returns a Service with httprouter Router
 // handling requests.
-func NewServer(port int, db database.Database, authPasswd string) *Server {
-	srv := &Server{
-		server: &http.Server{
+func NewService(port int, db database.Database, authPasswd string) *Service {
+	srv := &Service{
+		service: &http.Server{
 			Addr:              fmt.Sprintf(":%d", port),
 			ReadHeaderTimeout: 5 * time.Second,
 		},
@@ -50,32 +50,32 @@ func NewServer(port int, db database.Database, authPasswd string) *Server {
 	return srv
 }
 
-func (h *Server) registerHandlers() {
+func (h *Service) registerHandlers() {
 
-	handler := makeServerAPI(h).routes()
+	handler := makeServiceAPI(h).routes()
 
-	h.server.Handler = handler
+	h.service.Handler = handler
 }
 
-func (h *Server) Addr() string {
-	return h.server.Addr
+func (h *Service) Addr() string {
+	return h.service.Addr
 }
 
-// Start spawns the server which will listen on the TCP address srv.Addr
+// Start spawns the service which will listen on the TCP address srv.Addr
 // for incoming requests.
-func (h *Server) Start() {
+func (h *Service) Start() {
 	go func() {
 		h.started.Store(true)
-		if err := h.server.ListenAndServe(); err != nil {
-			slog.Warn("serverTerminated", "error", err)
+		if err := h.service.ListenAndServe(); err != nil {
+			slog.Warn("serviceTerminated", "error", err)
 		}
 	}()
 	slog.Info("listening on port", "address", h.Addr())
 }
 
-// Stop gracefully shuts down the HTTP server.
-func (h *Server) Stop() error {
+// Stop gracefully shuts down the HTTP service.
+func (h *Service) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return h.server.Shutdown(ctx)
+	return h.service.Shutdown(ctx)
 }

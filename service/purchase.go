@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"encoding/json"
@@ -22,8 +22,8 @@ import (
 // @Failure 400 {object} JSONError
 // @Failure 404 {object} JSONError
 // @Failure 503 {object} JSONError
-// @Router /v0/inventory/items/purchase [post]
-func (h *Server) PurchaseItems() httprouter.Handle {
+// @Router /v1/inventory/items/purchase [post]
+func (h *Service) PurchaseItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		ctx := r.Context()

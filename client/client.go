@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,11 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/model"
-	"github.com/ATMackay/checkout/server"
+	"github.com/ATMackay/checkout/service"
 )
-
-var ErrMethodNotAllowed = errors.New("method not allowed")
 
 type Client struct {
 	base *url.URL
@@ -56,7 +54,7 @@ func (c *Client) AddAuthorizationHeader(psswd string) {
 type HTTPError struct {
 	Status int
 	Body   []byte
-	JSON   *server.JSONError
+	JSON   *errors.JSONError
 }
 
 func (e *HTTPError) Error() string {
@@ -113,12 +111,12 @@ func (c *Client) executeJSONRequest(ctx context.Context, method, path string, in
 
 	if resp.StatusCode >= 400 {
 		he := &HTTPError{Status: resp.StatusCode, Body: b}
-		var je server.JSONError
+		var je errors.JSONError
 		if json.Unmarshal(b, &je) == nil && (je.Error != "") {
 			he.JSON = &je
 		}
 		if resp.StatusCode == http.StatusMethodNotAllowed {
-			return fmt.Errorf("method %s %s: %w", method, path, ErrMethodNotAllowed)
+			return fmt.Errorf("method %s %s: %w", method, path, errors.ErrMethodNotAllowed)
 		}
 		return he
 	}
@@ -133,7 +131,7 @@ func (c *Client) executeJSONRequest(ctx context.Context, method, path string, in
 
 func (client *Client) Status(ctx context.Context) (*model.StatusResponse, error) {
 	var status model.StatusResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, server.StatusEndPnt, nil, &status); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, service.StatusEndPnt, nil, &status); err != nil {
 		return nil, err
 	}
 	return &status, nil
@@ -141,19 +139,19 @@ func (client *Client) Status(ctx context.Context) (*model.StatusResponse, error)
 
 func (client *Client) Health(ctx context.Context) (*model.HealthResponse, error) {
 	var health model.HealthResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, server.HealthEndPnt, nil, &health); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, service.HealthEndPnt, nil, &health); err != nil {
 		return nil, err
 	}
 	return &health, nil
 }
 
 func (client *Client) AddItems(ctx context.Context, addItemReq *model.AddItemsRequest) error {
-	return client.executeJSONRequest(ctx, http.MethodPost, server.ItemsEndPnt, addItemReq, nil)
+	return client.executeJSONRequest(ctx, http.MethodPost, service.ItemsEndPnt, addItemReq, nil)
 }
 
 func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {
 	var its []*model.Item
-	if err := client.executeJSONRequest(ctx, http.MethodGet, server.ItemsEndPnt, nil, &its); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, service.ItemsEndPnt, nil, &its); err != nil {
 		return nil, err
 	}
 	return its, nil
@@ -161,7 +159,7 @@ func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {
 
 func (client *Client) GetItemPrice(ctx context.Context, key string) (*model.PriceResponse, error) {
 	var itPriceResp model.PriceResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", server.ItemPriceEndPnt, key), nil, &itPriceResp); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", service.ItemPriceEndPnt, key), nil, &itPriceResp); err != nil {
 		return nil, err
 	}
 	return &itPriceResp, nil
@@ -169,7 +167,7 @@ func (client *Client) GetItemPrice(ctx context.Context, key string) (*model.Pric
 
 func (client *Client) GetItemsPrice(ctx context.Context, itemsPriceReq *model.ItemsPriceRequest) (*model.PriceResponse, error) {
 	var itPriceResp model.PriceResponse
-	if err := client.executeJSONRequest(ctx, http.MethodPost, server.ItemPriceEndPnt, itemsPriceReq, &itPriceResp); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodPost, service.ItemPriceEndPnt, itemsPriceReq, &itPriceResp); err != nil {
 		return nil, err
 	}
 	return &itPriceResp, nil
@@ -177,7 +175,7 @@ func (client *Client) GetItemsPrice(ctx context.Context, itemsPriceReq *model.It
 
 func (client *Client) PurchaseItems(ctx context.Context, itemsPriceReq *model.PurchaseItemsRequest) (*model.PurchaseItemsResponse, error) {
 	var itPurchaseResp model.PurchaseItemsResponse
-	if err := client.executeJSONRequest(ctx, http.MethodPost, server.ItemPurchaseEndPnt, itemsPriceReq, &itPurchaseResp); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodPost, service.ItemPurchaseEndPnt, itemsPriceReq, &itPurchaseResp); err != nil {
 		return nil, err
 	}
 	return &itPurchaseResp, nil
@@ -185,7 +183,7 @@ func (client *Client) PurchaseItems(ctx context.Context, itemsPriceReq *model.Pu
 
 func (client *Client) GetOrders(ctx context.Context) (*model.Orders, error) {
 	var orders model.Orders
-	if err := client.executeJSONRequest(ctx, http.MethodGet, server.OrdersEndPnt, nil, &orders); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, service.OrdersEndPnt, nil, &orders); err != nil {
 		return nil, err
 	}
 	return &orders, nil

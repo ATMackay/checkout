@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 // Authentication middleware - password in Header.
 
 // authMiddleware adds password protection to specific hhtp routes
-func (s *Server) authMiddleware(h httprouter.Handle) httprouter.Handle {
+func (s *Service) authMiddleware(h httprouter.Handle) httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 		// Get the password from the header
 		password := req.Header.Get("X-Auth-Password")
@@ -29,8 +29,8 @@ func (s *Server) authMiddleware(h httprouter.Handle) httprouter.Handle {
 
 // Observability middleware
 
-// observerMiddleware provides logging and metrics middleware, surfacing low level request/response data from the http server.
-func observerMiddleware(h httprouter.Handle) httprouter.Handle {
+// observiceMiddleware provides logging and metrics middleware, surfacing low level request/response data from the http service.
+func observiceMiddleware(h httprouter.Handle) httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 
 		statusRecorder := &responseRecorder{ResponseWriter: w}
@@ -46,7 +46,7 @@ func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 		RequestCount.WithLabelValues(req.Method, req.URL.Path, http.StatusText(httpCode)).Inc()
 
 		// only log full request/response data if running in debug mode or if
-		// the server returned an error response code.
+		// the service returned an error response code.
 		if httpCode > 399 {
 			slog.Warn("http err",
 				"http_method", req.Method,
