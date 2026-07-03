@@ -16,7 +16,7 @@ import (
 // @Tags         inventory
 // @Produce      json
 // @Success      200      {array}  model.Item
-// @Failure      500      {object} service.JSONError
+// @Failure      500      {object} errors.JSONError
 // @Security     XAuthPassword
 // @Router       /v0/inventory/items [get]
 func (h *Service) ListItems() httprouter.Handle {
@@ -41,10 +41,10 @@ func (h *Service) ListItems() httprouter.Handle {
 // @Produce      json
 // @Param        request  body   model.AddItemsRequest  true  "List of items"
 // @Success      200      {array}  model.Item
-// @Failure      400      {object} service.JSONError
-// @Failure      401      {object} service.JSONError
-// @Failure      404      {object} service.JSONError
-// @Failure      500      {object} service.JSONError
+// @Failure      400      {object} errors.JSONError
+// @Failure      401      {object} errors.JSONError
+// @Failure      404      {object} errors.JSONError
+// @Failure      500      {object} errors.JSONError
 // @Security     XAuthPassword
 // @Router       /v0/inventory/items [post]
 func (h *Service) AddItems() httprouter.Handle {
@@ -90,9 +90,9 @@ func (h *Service) AddItems() httprouter.Handle {
 // @Produce      json
 // @Param        key   path      string                true  "Item SKU or Name"
 // @Success      200   {object}  model.PriceResponse
-// @Failure      400   {object}  service.JSONError
-// @Failure      404   {object}  service.JSONError
-// @Failure      500      {object} service.JSONError
+// @Failure      400   {object}  errors.JSONError
+// @Failure      404   {object}  errors.JSONError
+// @Failure      500   {object}  errors.JSONError
 // @Router       /v0/inventory/item/price/{key} [get]
 func (h *Service) ItemPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -134,9 +134,9 @@ func (h *Service) ItemPrice() httprouter.Handle {
 // @Produce      json
 // @Param        request  body     model.ItemsPriceRequest  true  "List of SKUs"
 // @Success      200      {object} model.PriceResponse
-// @Failure      400      {object} service.JSONError
-// @Failure      404      {object} service.JSONError
-// @Failure      500      {object} service.JSONError
+// @Failure      400      {object} errors.JSONError
+// @Failure      404      {object} errors.JSONError
+// @Failure      500      {object} errors.JSONError
 // @Router       /v0/inventory/items/price [post]
 func (h *Service) ItemsPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

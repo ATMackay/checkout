@@ -15,7 +15,7 @@ import (
 // @Tags status
 // @Produce json
 // @Success 200 {object} model.StatusResponse
-// @Failure 500 {object} JSONError
+// @Failure 500 {object} errors.JSONError
 // @Router /status [get]
 func Status() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -31,7 +31,7 @@ func Status() httprouter.Handle {
 // @Produce json
 // @Success 200 {object} model.HealthResponse
 // @Failure 503 {object} model.HealthResponse
-// @Failure 500 {object} JSONError
+// @Failure 500 {object} errors.JSONError
 // @Router /health [get]
 func (h *Service) Health() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
