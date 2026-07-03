@@ -19,7 +19,7 @@ import (
 
 // Service executes business logic, handles requests, and provides access to the connected Database.
 type Service struct {
-	service          *http.Server
+	server           *http.Server
 	db               database.Database
 	promotionsEngine *promotions.PromotionsEngine
 
@@ -32,7 +32,7 @@ type Service struct {
 // handling requests.
 func NewService(port int, db database.Database, authPasswd string) *Service {
 	srv := &Service{
-		service: &http.Server{
+		server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", port),
 			ReadHeaderTimeout: 5 * time.Second,
 		},
@@ -54,11 +54,11 @@ func (h *Service) registerHandlers() {
 
 	handler := makeServiceAPI(h).routes()
 
-	h.service.Handler = handler
+	h.server.Handler = handler
 }
 
 func (h *Service) Addr() string {
-	return h.service.Addr
+	return h.server.Addr
 }
 
 // Start spawns the service which will listen on the TCP address srv.Addr
@@ -66,7 +66,7 @@ func (h *Service) Addr() string {
 func (h *Service) Start() {
 	go func() {
 		h.started.Store(true)
-		if err := h.service.ListenAndServe(); err != nil {
+		if err := h.server.ListenAndServe(); err != nil {
 			slog.Warn("serviceTerminated", "error", err)
 		}
 	}()
@@ -77,5 +77,5 @@ func (h *Service) Start() {
 func (h *Service) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return h.service.Shutdown(ctx)
+	return h.server.Shutdown(ctx)
 }

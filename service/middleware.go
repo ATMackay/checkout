@@ -29,8 +29,8 @@ func (s *Service) authMiddleware(h httprouter.Handle) httprouter.Handle {
 
 // Observability middleware
 
-// observiceMiddleware provides logging and metrics middleware, surfacing low level request/response data from the http service.
-func observiceMiddleware(h httprouter.Handle) httprouter.Handle {
+// observerMiddleware provides logging and metrics middleware, surfacing low level request/response data from the http server.
+func observerMiddleware(h httprouter.Handle) httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
 
 		statusRecorder := &responseRecorder{ResponseWriter: w}

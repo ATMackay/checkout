@@ -105,10 +105,10 @@ func (a *API) routes() *httprouter.Router {
 	router := httprouter.New()
 
 	for _, e := range a.endpoints {
-		router.Handle(e.methodType, e.path, observiceMiddleware(e.handler))
+		router.Handle(e.methodType, e.path, observerMiddleware(e.handler))
 	}
 
-	// Add metrics service
+	// Add metrics server
 	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())
 
 	return router

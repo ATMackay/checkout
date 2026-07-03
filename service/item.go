@@ -18,7 +18,7 @@ import (
 // @Success      200      {array}  model.Item
 // @Failure      500      {object} errors.JSONError
 // @Security     XAuthPassword
-// @Router       /v0/inventory/items [get]
+// @Router       /v1/inventory/items [get]
 func (h *Service) ListItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		its, err := h.db.ListItems(r.Context())
@@ -46,7 +46,7 @@ func (h *Service) ListItems() httprouter.Handle {
 // @Failure      404      {object} errors.JSONError
 // @Failure      500      {object} errors.JSONError
 // @Security     XAuthPassword
-// @Router       /v0/inventory/items [post]
+// @Router       /v1/inventory/items [post]
 func (h *Service) AddItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
@@ -93,7 +93,7 @@ func (h *Service) AddItems() httprouter.Handle {
 // @Failure      400   {object}  errors.JSONError
 // @Failure      404   {object}  errors.JSONError
 // @Failure      500   {object}  errors.JSONError
-// @Router       /v0/inventory/item/price/{key} [get]
+// @Router       /v1/inventory/item/price/{key} [get]
 func (h *Service) ItemPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
@@ -137,7 +137,7 @@ func (h *Service) ItemPrice() httprouter.Handle {
 // @Failure      400      {object} errors.JSONError
 // @Failure      404      {object} errors.JSONError
 // @Failure      500      {object} errors.JSONError
-// @Router       /v0/inventory/items/price [post]
+// @Router       /v1/inventory/items/price [post]
 func (h *Service) ItemsPrice() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 

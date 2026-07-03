@@ -70,7 +70,7 @@
                 }
             }
         },
-        "/v0/inventory/item/price/{key}": {
+        "/v1/inventory/item/price/{key}": {
             "get": {
                 "description": "Get price information for a single item by SKU or name",
                 "produces": [
@@ -117,7 +117,7 @@
                 }
             }
         },
-        "/v0/inventory/items": {
+        "/v1/inventory/items": {
             "get": {
                 "security": [
                     {
@@ -215,7 +215,7 @@
                 }
             }
         },
-        "/v0/inventory/items/price": {
+        "/v1/inventory/items/price": {
             "post": {
                 "description": "Get total price for a batch of items by SKUs",
                 "consumes": [
