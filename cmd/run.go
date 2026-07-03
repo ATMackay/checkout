@@ -10,7 +10,7 @@ import (
 
 	"github.com/ATMackay/checkout/constants"
 	"github.com/ATMackay/checkout/database"
-	"github.com/ATMackay/checkout/server"
+	"github.com/ATMackay/checkout/service"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -68,7 +68,7 @@ func NewRunCmd() *cobra.Command {
 				"version", constants.Version,
 			)
 			// Build Service
-			svc := server.NewServer(port, db, authPassword)
+			svc := service.NewService(port, db, authPassword)
 			// Start the server
 			svc.Start()
 

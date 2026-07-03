@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"fmt"
@@ -13,12 +13,12 @@ import (
 // @Tags inventory
 // @Produce json
 // @Success 200 {array}  model.Order
-// @Failure 400 {object} JSONError
-// @Failure 401 {object} JSONError
-// @Failure 404 {object} JSONError
-// @Failure 500 {object} JSONError
-// @Router /v0/orders [get]
-func (h *Server) Orders() httprouter.Handle {
+// @Failure 400 {object} errors.JSONError
+// @Failure 401 {object} errors.JSONError
+// @Failure 404 {object} errors.JSONError
+// @Failure 500 {object} errors.JSONError
+// @Router /v1/orders [get]
+func (h *Service) Orders() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		os, err := h.db.GetOrders(r.Context())

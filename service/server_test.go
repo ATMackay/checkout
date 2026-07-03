@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"bytes"
@@ -16,10 +16,10 @@ import (
 
 func Test_ServerStartStop(t *testing.T) {
 
-	s := NewServer(8001, nil, "")
+	s := NewService(8001, nil, "")
 
 	s.Start()
-	// Wait until server goroutine has initialized
+	// Wait until service goroutine has initialized
 	for !s.started.Load() {
 	}
 
@@ -37,7 +37,7 @@ func Test_ServerEndpoints(t *testing.T) {
 
 	db := mock.NewMockDatabase(ctrl)
 
-	s := NewServer(8001, db, "")
+	s := NewService(8001, db, "")
 
 	ctx := context.Background()
 	tests := []struct {

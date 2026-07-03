@@ -1,10 +1,11 @@
-package server
+package service
 
 import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
 
+	"github.com/ATMackay/checkout/errors"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -13,13 +14,13 @@ var (
 	StatusEndPnt = "/status"
 	HealthEndPnt = "/health"
 
-	ItemsEndPnt        = "/v0/inventory/items"
-	ItemPriceEndPnt    = "/v0/inventory/item/price"
-	ItemsPriceEndPnt   = "/v0/inventory/items/price"
-	ItemPurchaseEndPnt = "/v0/inventory/items/purchase"
+	ItemsEndPnt        = "/v1/inventory/items"
+	ItemPriceEndPnt    = "/v1/inventory/item/price"
+	ItemsPriceEndPnt   = "/v1/inventory/items/price"
+	ItemPurchaseEndPnt = "/v1/inventory/items/purchase"
 	KeyParam           = "/:key"
 
-	OrdersEndPnt = "/v0/orders"
+	OrdersEndPnt = "/v1/orders"
 )
 
 // API is a collection of endpoints.
@@ -27,8 +28,8 @@ type API struct {
 	endpoints []endPoint
 }
 
-// makeServerAPI returns a server http API with endpoints
-func makeServerAPI(h *Server) *API {
+// makeServerAPI returns a service http API with endpoints
+func makeServiceAPI(h *Service) *API {
 	return addEndpoints([]endPoint{
 		// Liveness/Readiness probing
 		{
@@ -129,11 +130,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload any) error {
 }
 
 func respondWithError(w http.ResponseWriter, code int, err error) {
-	if writeErr := respondWithJSON(w, code, JSONError{Error: err.Error()}); writeErr != nil {
+	if writeErr := respondWithJSON(w, code, errors.JSONError{Error: err.Error()}); writeErr != nil {
 		slog.Error("failed to write error response", "error", writeErr, "original_error", err)
 	}
-}
-
-type JSONError struct {
-	Error string `json:"error,omitempty"`
 }

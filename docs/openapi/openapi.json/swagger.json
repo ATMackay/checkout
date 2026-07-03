@@ -32,7 +32,7 @@
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "503": {
@@ -64,13 +64,13 @@
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
             }
         },
-        "/v0/inventory/item/price/{key}": {
+        "/v1/inventory/item/price/{key}": {
             "get": {
                 "description": "Get price information for a single item by SKU or name",
                 "produces": [
@@ -99,25 +99,25 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
             }
         },
-        "/v0/inventory/items": {
+        "/v1/inventory/items": {
             "get": {
                 "security": [
                     {
@@ -145,7 +145,7 @@
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
@@ -191,31 +191,31 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
             }
         },
-        "/v0/inventory/items/price": {
+        "/v1/inventory/items/price": {
             "post": {
                 "description": "Get total price for a batch of items by SKUs",
                 "consumes": [
@@ -249,25 +249,25 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
             }
         },
-        "/v0/inventory/items/purchase": {
+        "/v1/inventory/items/purchase": {
             "post": {
                 "description": "Create a purchase order for the supplied item list.",
                 "consumes": [
@@ -287,7 +287,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/model.PurchaseItemsResponse"
+                            "$ref": "#/definitions/model.PurchaseItemsRequest"
                         }
                     }
                 ],
@@ -301,25 +301,25 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "503": {
                         "description": "Service Unavailable",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
             }
         },
-        "/v0/orders": {
+        "/v1/orders": {
             "get": {
                 "description": "List all purchase orders",
                 "produces": [
@@ -342,25 +342,25 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.JSONError"
+                            "$ref": "#/definitions/errors.JSONError"
                         }
                     }
                 }
@@ -368,6 +368,14 @@
         }
     },
     "definitions": {
+        "errors.JSONError": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
         "model.AddItemsRequest": {
             "type": "object",
             "properties": {
@@ -479,6 +487,17 @@
                 }
             }
         },
+        "model.PurchaseItemsRequest": {
+            "type": "object",
+            "properties": {
+                "skus": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "model.PurchaseItemsResponse": {
             "type": "object",
             "properties": {
@@ -500,14 +519,6 @@
                     "type": "string"
                 },
                 "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "server.JSONError": {
-            "type": "object",
-            "properties": {
-                "error": {
                     "type": "string"
                 }
             }

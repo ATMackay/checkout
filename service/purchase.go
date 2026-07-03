@@ -1,4 +1,4 @@
-package server
+package service
 
 import (
 	"encoding/json"
@@ -17,13 +17,13 @@ import (
 // @Tags inventory
 // @Accept json
 // @Produce json
-// @Param   request  body    model.PurchaseItemsResponse  true  "List of SKUs"
+// @Param   request  body    model.PurchaseItemsRequest  true  "List of SKUs"
 // @Success 200 {object} model.PurchaseItemsResponse
-// @Failure 400 {object} JSONError
-// @Failure 404 {object} JSONError
-// @Failure 503 {object} JSONError
-// @Router /v0/inventory/items/purchase [post]
-func (h *Server) PurchaseItems() httprouter.Handle {
+// @Failure 400 {object} errors.JSONError
+// @Failure 404 {object} errors.JSONError
+// @Failure 503 {object} errors.JSONError
+// @Router /v1/inventory/items/purchase [post]
+func (h *Service) PurchaseItems() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 		ctx := r.Context()
