@@ -22,7 +22,7 @@ import (
 func NewOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "orders", // Orders service
-		Short: fmt.Sprintf("Start the %s", orders.ServiceName),
+		Short: fmt.Sprintf("Run the %s. A microservice handling purchase orders and item inventory exposing a REST API for clients.", orders.ServiceName),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Read configuration from Viper
 			port := viper.GetInt(FlagPort)
