@@ -3,6 +3,7 @@ package noop
 import (
 	"context"
 
+	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/messaging"
 )
 
@@ -15,7 +16,7 @@ type Client struct{}
 
 var _ messaging.Publisher = (*Client)(nil)
 
-func (c *Client) Publish(ctx context.Context, ev *messaging.Event) error {
+func (c *Client) Publish(ctx context.Context, ev *event.Event) error {
 	return nil
 }
 

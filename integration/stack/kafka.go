@@ -95,7 +95,11 @@ func (k *KafkaContainer) InternalBroker() string {
 // creation. Producing to a missing topic fails with UNKNOWN_TOPIC_OR_PARTITION
 // unless the client opts in via kgo.AllowAutoTopicCreation, and even then the
 // first attempt races the metadata refresh. Already-existing topics are ignored.
-func (k *KafkaContainer) CreateTopics(t *testing.T, ctx context.Context, topics ...string) {
+//
+// Prefer partitions > 1. A single-partition topic orders every record globally,
+// which makes a test pass regardless of whether the producer sets a partition
+// key — exactly the bug such a test should be catching.
+func (k *KafkaContainer) CreateTopics(t *testing.T, ctx context.Context, partitions int32, topics ...string) {
 	t.Helper()
 
 	cl, err := kgo.NewClient(kgo.SeedBrokers(k.Brokers()...))
@@ -108,7 +112,7 @@ func (k *KafkaContainer) CreateTopics(t *testing.T, ctx context.Context, topics 
 	for _, name := range topics {
 		rt := kmsg.NewCreateTopicsRequestTopic()
 		rt.Topic = name
-		rt.NumPartitions = 1
+		rt.NumPartitions = partitions
 		rt.ReplicationFactor = 1
 		req.Topics = append(req.Topics, rt)
 	}

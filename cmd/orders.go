@@ -66,7 +66,7 @@ func NewOrdersCmd() *cobra.Command {
 			// Wire event producer
 			var cl messaging.Publisher = &noop.Client{} // Use noop client as default event producer
 			if eventBrokerHost != "" {
-				cl, err = kafka.NewClient(eventBrokerHost)
+				cl, err = kafka.NewClient([]string{eventBrokerHost})
 				if err != nil {
 					return fmt.Errorf("could not connect to event host %s: %w", eventBrokerHost, err)
 				}

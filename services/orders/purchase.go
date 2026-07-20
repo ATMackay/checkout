@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/database"
-	"github.com/ATMackay/checkout/messaging"
+	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
@@ -120,10 +120,14 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 				return fmt.Errorf("failed to create order: %w", err)
 			}
 			// Add event publisher here within DB transaction (sync)
-			if err := h.events.Publish(ctx, &messaging.Event{
-				Topic: "orders.created",
-				Data:  order, // re-use order model for event propagation
-			}); err != nil {
+			// Keyed by order reference so every event about a given order lands
+			// on one partition and is consumed in order. event.New stamps the
+			// ID consumers deduplicate on.
+			if err := h.events.Publish(ctx, event.New(
+				TopicOrderCreated,
+				order.Reference,
+				order, // re-use order model for event propagation
+			)); err != nil {
 				return fmt.Errorf("failed to publish event; %w", err)
 			}
 			return nil
