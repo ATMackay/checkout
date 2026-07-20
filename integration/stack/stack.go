@@ -136,7 +136,9 @@ func createCheckoutOrdersServiceContainer(t *testing.T,
 			"CHECKOUT_LOG_FORMAT":  "text",
 			"CHECKOUT_PASSWORD":    TestAuthPassword,
 		},
-		Cmd: []string{"run orders"}, // ORDERS SERVICE COMMAND
+		// One argv element per token: "run orders" as a single string is passed
+		// to the binary as one argument and fails with unknown command.
+		Cmd: []string{"run", "orders"}, // ORDERS SERVICE COMMAND
 		// Use WithNetworkName or WithNetwork to attach to the existing network
 		Networks: []string{net.Name},
 		WaitingFor: wait.ForHTTP("/health").

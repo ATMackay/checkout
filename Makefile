@@ -70,7 +70,7 @@ test: build/coverage
 
 test-integration:
 	@echo "🧪 Running integration tests..."
-	@go test -v -tags=integration ./integration/... -count=1 -timeout=15m
+	@go test -v -tags=integration ./... -count=1 -timeout=15m
 
 test-coverage: test
 	@go tool cover -html=$(UNIT_COVERAGE_OUT)
