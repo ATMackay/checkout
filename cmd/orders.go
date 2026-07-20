@@ -25,19 +25,19 @@ func NewOrdersCmd() *cobra.Command {
 		Short: fmt.Sprintf("Start the %s", orders.ServiceName),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Read configuration from Viper
-			port := viper.GetInt("port")
-			sqliteDBPath := viper.GetString("sqlite")
-			dbHost := viper.GetString("db-host")
-			dbUser := viper.GetString("db-user")
-			dbPassword := viper.GetString("db-password")
-			dbPort := viper.GetInt("db-port")
-			useMemoryDB := viper.GetBool("memory-db")
-			recreateSchema := viper.GetBool("recreate-schema")
-			logLevel := viper.GetString("log-level")
-			logFormat := viper.GetString("log-format")
-			authPassword := viper.GetString("password")
-			enableEvents := viper.GetBool("enable-events")
-			eventHost := viper.GetString("event-host")
+			port := viper.GetInt(FlagPort)
+			sqliteDBPath := viper.GetString(FlagSQLite)
+			dbHost := viper.GetString(FlagDBHost)
+			dbUser := viper.GetString(FlagDBUser)
+			dbPassword := viper.GetString(FlagDBPassword)
+			dbPort := viper.GetInt(FlagDBPort)
+			useMemoryDB := viper.GetBool(FlagMemoryDB)
+			recreateSchema := viper.GetBool(FlagRecreateSchema)
+			logLevel := viper.GetString(FlagLogLevel)
+			logFormat := viper.GetString(FlagLogFormat)
+			authPassword := viper.GetString(FlagPassword)
+			// Events v>=0.7.0
+			eventBrokerHost := viper.GetString(FlagEventBroker)
 			//
 			// Execute the main application lifecycle
 			//
@@ -65,10 +65,10 @@ func NewOrdersCmd() *cobra.Command {
 			}
 			// Wire event producer
 			var cl messaging.Publisher = &noop.Client{} // Use noop client as default event producer
-			if enableEvents {
-				cl, err = kafka.NewClient(eventHost)
+			if eventBrokerHost != "" {
+				cl, err = kafka.NewClient(eventBrokerHost)
 				if err != nil {
-					return fmt.Errorf("could not connect to event host %s: %w", eventHost, err)
+					return fmt.Errorf("could not connect to event host %s: %w", eventBrokerHost, err)
 				}
 			}
 			if isBuildDirty() {
@@ -99,38 +99,29 @@ func NewOrdersCmd() *cobra.Command {
 		},
 	}
 	// Bind flags and ENV vars
-	cmd.Flags().Int("port", 8080, "Port to run the server on")
-	cmd.Flags().String("sqlite", "data/db", "Path to SQLite database file")
-	cmd.Flags().String("db-user", "", "Database user (for non-SQLite databases)")
-	cmd.Flags().String("db-host", "", "Database host (for non-SQLite databases)")
-	cmd.Flags().String("db-password", "", "Database password (for non-SQLite databases)")
-	cmd.Flags().Int("db-port", 5432, "Database password (for non-SQLite databases)")
-	cmd.Flags().Bool("memory-db", false, "Use in-memory SQLite database")
-	cmd.Flags().Bool("recreate-schema", false, "Recreate DB schema (SQLite)")
+	cmd.Flags().Int(FlagPort, 8080, "Port to run the server on")
+	cmd.Flags().String(FlagSQLite, "data/db", "Path to SQLite database file")
+	cmd.Flags().String(FlagDBUser, "", "Database user (for non-SQLite databases)")
+	cmd.Flags().String(FlagDBHost, "", "Database host (for non-SQLite databases)")
+	cmd.Flags().String(FlagDBPassword, "", "Database password (for non-SQLite databases)")
+	cmd.Flags().Int(FlagDBPort, 5432, "Database port (for non-SQLite databases)")
+	cmd.Flags().Bool(FlagMemoryDB, false, "Use in-memory SQLite database")
+	cmd.Flags().Bool(FlagRecreateSchema, false, "Recreate DB schema (SQLite)")
 	// Logging
-	cmd.Flags().String("log-level", "info", "Log level (debug, info, warn, error, fatal, panic)")
-	cmd.Flags().String("log-format", "text", "Log format (text, json)")
-	cmd.Flags().String("password", "", "Authentication password for protected endpoints")
+	cmd.Flags().String(FlagLogLevel, "info", "Log level (debug, info, warn, error, fatal, panic)")
+	cmd.Flags().String(FlagLogFormat, "text", "Log format (text, json)")
+	cmd.Flags().String(FlagPassword, "", "Authentication password for protected endpoints")
 	// Event flags (>=v0.7.0)
-	cmd.Flags().Bool("enable-events", false, "Enable event sourcing (e.g., service name)")
-	cmd.Flags().String("event-host", "localhost:9092", "Event messaging host (Kafka)")
+	cmd.Flags().String(FlagEventBroker, "", "Event broker address (Kafka). Empty disables event publishing")
 
 	must := func(err error) {
 		if err != nil {
 			panic(err)
 		}
 	}
-	// Bind flags to environment variables
-	must(viper.BindPFlag("port", cmd.Flags().Lookup("port")))
-	must(viper.BindPFlag("sqlite", cmd.Flags().Lookup("sqlite")))
-	must(viper.BindPFlag("db-host", cmd.Flags().Lookup("db-host")))
-	must(viper.BindPFlag("db-password", cmd.Flags().Lookup("db-password")))
-	must(viper.BindPFlag("memory-db", cmd.Flags().Lookup("memory-db")))
-	must(viper.BindPFlag("recreate-schema", cmd.Flags().Lookup("recreate-schema")))
-	must(viper.BindPFlag("log-level", cmd.Flags().Lookup("log-level")))
-	must(viper.BindPFlag("log-format", cmd.Flags().Lookup("log-format")))
-	must(viper.BindPFlag("password", cmd.Flags().Lookup("password")))
-	must(viper.BindPFlag("enable-events", cmd.Flags().Lookup("enable-events")))
+	// Bind every registered flag in one call. Binding the FlagSet wholesale
+	// rather than flag-by-flag means a newly added flag cannot be left unbound.
+	must(viper.BindPFlags(cmd.Flags()))
 
 	// Set environment variable prefix and read from environment
 	viper.SetEnvPrefix(EnvPrefix) // Environment variables will be prefixed with CHECKOUT_
