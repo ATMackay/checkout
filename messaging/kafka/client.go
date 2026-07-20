@@ -45,7 +45,7 @@ func (c *Client) Publish(ctx context.Context, ev *messaging.Event) error {
 	// TODO - move to async event production
 	res := c.client.ProduceSync(ctx, &kgo.Record{
 		Topic: ev.Topic,
-		Key:   nil, /* TODO*/
+		Key:   []byte("data"),
 		Value: b,
 	})
 	return res.FirstErr()

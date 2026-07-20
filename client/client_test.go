@@ -10,6 +10,7 @@ import (
 
 	"github.com/ATMackay/checkout/database"
 	srverrors "github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/ATMackay/checkout/model"
 	"github.com/ATMackay/checkout/services/orders"
 	"github.com/shopspring/decimal"
@@ -23,7 +24,7 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := orders.NewService(8001, db, "1234", nil)
+	s := orders.NewService(8001, db, "1234", &noop.Client{})
 	s.Start()
 
 	time.Sleep(10 * time.Millisecond)

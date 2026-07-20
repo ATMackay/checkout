@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ATMackay/checkout/database/mock"
+	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func Test_ServerEndpoints(t *testing.T) {
 
 	db := mock.NewMockDatabase(ctrl)
 
-	s := NewService(8001, db, "", nil)
+	s := NewService(8001, db, "", &noop.Client{})
 
 	ctx := context.Background()
 	tests := []struct {
