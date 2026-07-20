@@ -1,6 +1,4 @@
-//go:build integration
-
-package integration
+package stack
 
 import (
 	"context"
@@ -11,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ATMackay/checkout/client"
 	"github.com/ATMackay/checkout/model"
 	"github.com/shopspring/decimal"
 	"github.com/testcontainers/testcontainers-go"
@@ -21,52 +18,63 @@ import (
 )
 
 const (
-	testNetworkAlias = "checkout-app"
-	testDbName       = "checkout"
-	testUsername     = "checkout"
-	testDBPassword   = "not-a-real-db-passwd"
-	testAuthPassword = "not-a-real-auth-passwd"
-	testHTTPPort     = "8080/tcp"
-	testPostgresPort = "5432/tcp"
+	TestNetworkAlias = "checkout-app"
+	TestDbName       = "checkout"
+	TestUsername     = "checkout"
+	TestDBPassword   = "not-a-real-db-passwd"
+	TestAuthPassword = "not-a-real-auth-passwd"
+	TestHTTPPort     = "8080/tcp"
+	TestPostgresPort = "5432/tcp"
 )
 
-type stack struct {
+type Stack struct {
 	// Networking
 	network *testcontainers.DockerNetwork
 	// App stack
-	database *pgContainer
-	app      *appContainer
+	database *PGContainer
+	app      *appContainer // TODO - one of several microservice apps
 }
 
-type stackOpts struct {
+type Opts struct {
 	// DB
-	dbLogs bool
+	DbLogs bool
 	// Checkout App
-	appLogs bool
-	debug   bool
+	AppLogs bool
+	Debug   bool
+
+	// Optional Processes
+	// EnableEvents bool
 }
 
-func makeStack(t *testing.T, ctx context.Context, opts *stackOpts) *stack {
+func MakeStack(t *testing.T, ctx context.Context, opts *Opts) *Stack {
 	t.Log("Building Checkout App  Testcontainers stack")
 	// 1) Test network for cross-container DNS (app ↔ postgres)
 	t.Log("Creating network")
-	net := createNetwork(t, ctx)
+	net := CreateNetwork(t, ctx)
 	t.Logf("Created Docker network: %s", net.Name)
 	// 2) Spin up Postgres container
 	t.Log("Initializing postgres")
-	pg := startPostgres(t, ctx, net.Name, opts.dbLogs)
+	pg := StartPostgres(t, ctx, net.Name, opts.DbLogs)
 	t.Logf("Postgres DB created: db=%s, user=%s", pg.db, pg.user)
 
 	// 2) Build and start checkout app (built from Dockerfile)
 	// Add PG container network details when wiring the app
 	t.Log("Building checkout server")
-	app := createCheckoutAppContainer(t, ctx, net, pg, opts.appLogs, opts.debug)
-	t.Logf("created server listening on URL: %s", app.url())
-	return &stack{
+	ordersApp := createCheckoutOrdersServiceContainer(t, ctx, net, pg, opts.AppLogs, opts.Debug)
+	t.Logf("created server listening on URL: %s", ordersApp.url())
+	return &Stack{
 		network:  net,
 		database: pg,
-		app:      app,
+		app:      ordersApp, // will expand the number of microservices as the stack complexity increases
 	}
+}
+
+func (s *Stack) AppURL() string {
+	return s.app.url()
+}
+
+func (s Stack) AuthPsswd() string {
+	return s.app.authPsswd
 }
 
 type testingLogConsumer struct {
@@ -81,7 +89,7 @@ func (c *testingLogConsumer) Accept(l testcontainers.Log) {
 }
 
 // Create a Docker network for the integration test
-func createNetwork(t *testing.T, ctx context.Context) *testcontainers.DockerNetwork {
+func CreateNetwork(t *testing.T, ctx context.Context) *testcontainers.DockerNetwork {
 	net, err := network.New(ctx,
 		network.WithAttachable(),
 	)
@@ -92,67 +100,6 @@ func createNetwork(t *testing.T, ctx context.Context) *testcontainers.DockerNetw
 		_ = net.Remove(context.Background())
 	})
 	return net
-}
-
-type pgContainer struct {
-	ctr     testcontainers.Container
-	network string
-	alias   string
-	user    string
-	pass    string
-	db      string
-}
-
-func startPostgres(t *testing.T,
-	ctx context.Context,
-	netName string,
-	withLogger bool,
-) *pgContainer {
-	// Compose-equivalent: env + command flags
-	req := &testcontainers.ContainerRequest{
-		Image:        "postgres:17.3",
-		ExposedPorts: []string{testPostgresPort},
-		Env: map[string]string{
-			"POSTGRES_DB":       testDbName,
-			"POSTGRES_USER":     testUsername,
-			"POSTGRES_PASSWORD": testDBPassword,
-		},
-		Cmd: []string{"postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"},
-		// Attach to our test network and set alias "database"
-		Networks:       []string{netName},
-		NetworkAliases: map[string][]string{netName: {testNetworkAlias}},
-		// Reliable wait: Postgres logs twice on cold start; also wait for the port
-		WaitingFor: wait.ForAll(
-			wait.ForLog("database system is ready to accept connections").WithOccurrence(2),
-			wait.ForListeningPort(testPostgresPort).WithStartupTimeout(60*time.Second),
-		),
-	}
-	if withLogger {
-		// ⬇️ Stream container logs to the test output
-		req.LogConsumerCfg = &testcontainers.LogConsumerConfig{
-			Opts:      []testcontainers.LogProductionOption{testcontainers.WithLogProductionTimeout(10 * time.Second)},
-			Consumers: []testcontainers.LogConsumer{&testingLogConsumer{t: t, service: "postgres"}},
-		}
-	}
-
-	ctr, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: *req,
-		Started:          true,
-		Logger:           log.TestLogger(t),
-	})
-	if err != nil {
-		t.Fatalf("start postgres: %v", err)
-	}
-	t.Cleanup(func() { _ = ctr.Terminate(context.Background()) })
-
-	return &pgContainer{
-		ctr:     ctr,
-		network: netName,
-		alias:   testNetworkAlias,
-		user:    testUsername,
-		pass:    testDBPassword,
-		db:      testDbName,
-	}
 }
 
 type appContainer struct {
@@ -167,10 +114,10 @@ func (a *appContainer) url() string {
 }
 
 // Create the application container attached to the same network
-func createCheckoutAppContainer(t *testing.T,
+func createCheckoutOrdersServiceContainer(t *testing.T,
 	ctx context.Context,
 	net *testcontainers.DockerNetwork,
-	pg *pgContainer,
+	pg *PGContainer,
 	withLogger bool,
 	debugLogs bool,
 ) *appContainer {
@@ -179,7 +126,7 @@ func createCheckoutAppContainer(t *testing.T,
 		logLevel = "debug"
 	}
 	req := &testcontainers.ContainerRequest{
-		ExposedPorts: []string{testHTTPPort},
+		ExposedPorts: []string{TestHTTPPort},
 		Env: map[string]string{
 			"CHECKOUT_DB_HOST":     pg.alias,
 			"CHECKOUT_DB_PORT":     "5432",
@@ -187,13 +134,13 @@ func createCheckoutAppContainer(t *testing.T,
 			"CHECKOUT_DB_PASSWORD": pg.pass,
 			"CHECKOUT_LOG_LEVEL":   logLevel,
 			"CHECKOUT_LOG_FORMAT":  "text",
-			"CHECKOUT_PASSWORD":    testAuthPassword,
+			"CHECKOUT_PASSWORD":    TestAuthPassword,
 		},
-		Cmd: []string{"run"},
+		Cmd: []string{"run orders"}, // ORDERS SERVICE COMMAND
 		// Use WithNetworkName or WithNetwork to attach to the existing network
 		Networks: []string{net.Name},
 		WaitingFor: wait.ForHTTP("/health").
-			WithPort(testHTTPPort).
+			WithPort(TestHTTPPort).
 			WithStartupTimeout(60 * time.Second),
 	}
 	// Try locally build image - defaults to 'latest' tag
@@ -241,7 +188,7 @@ func createCheckoutAppContainer(t *testing.T,
 	if err != nil {
 		t.Fatalf("resolve app host: %v", err)
 	}
-	mp, err := ctr.MappedPort(ctx, testHTTPPort)
+	mp, err := ctr.MappedPort(ctx, TestHTTPPort)
 	if err != nil {
 		t.Fatalf("resolve app mapped port: %v", err)
 	}
@@ -250,24 +197,13 @@ func createCheckoutAppContainer(t *testing.T,
 		ctr:        ctr,
 		host:       host,
 		mappedPort: mp.Port(),
-		authPsswd:  testAuthPassword,
+		authPsswd:  TestAuthPassword,
 	}
 }
 
 func strPtr(s string) *string { return &s }
 
-func makeClient(t *testing.T, baseURL, password string) *client.Client {
-	cl, err := client.New(baseURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cl.AddAuthorizationHeader(password)
-	return cl
-}
-
-func makeTestItem(id int) *model.Item {
-	// r := rand.New(rand.NewPCG(uint64(time.Now().Unix()), uint64(time.Now().Unix())))
-	// rand.IntN()
+func MakeRandomizedTestItem(id int) *model.Item {
 	sku := randomSKU()
 	price := decimal.NewFromInt(rand.Int64N(1000000)).Div(decimal.NewFromInt(100)) // 0.00 - 100.00
 	qty := max(1, rand.IntN(100))                                                  // 0-100
