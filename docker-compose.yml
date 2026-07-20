@@ -40,7 +40,7 @@ services:
       database:
         condition: service_healthy
     restart: unless-stopped
-    command: ["run"]
+    command: ["run orders"]
     environment:
       CHECKOUT_DB_HOST: database                            # reference postgres host
       CHECKOUT_DB_PORT: ${PG_HOST_PORT:-5432}               # DB port

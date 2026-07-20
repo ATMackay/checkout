@@ -24,3 +24,5 @@ func VersionCmd() *cobra.Command {
 	}
 	return cmd
 }
+
+func isBuildDirty() bool { return constants.Dirty }

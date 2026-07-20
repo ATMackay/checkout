@@ -1,4 +1,4 @@
-package service
+package orders
 
 import (
 	"encoding/json"
@@ -9,6 +9,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+const ServiceName = "orders service"
 
 var (
 	StatusEndPnt = "/status"

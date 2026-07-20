@@ -58,8 +58,9 @@ build-static:
 install: build
 	mv $(BIN) $(GOBIN)
 
-run: build
-	@./$(BUILD_FOLDER)/checkout run --memory-db
+# TODO
+run-orders: build
+	@./$(BUILD_FOLDER)/checkout run orders --memory-db
 
 build/coverage:
 	@mkdir -p $(COVERAGE_BUILD_FOLDER)

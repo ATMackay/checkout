@@ -1,4 +1,4 @@
-package service
+package orders
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ import (
 func Status() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		// Fixed response never errors
-		_ = respondWithJSON(w, http.StatusOK, &model.StatusResponse{Message: "OK", Version: constants.Version, Service: constants.ServiceName})
+		_ = respondWithJSON(w, http.StatusOK, &model.StatusResponse{Message: "OK", Version: constants.Version, Service: ServiceName})
 	})
 }
 
@@ -36,14 +36,18 @@ func Status() httprouter.Handle {
 func (h *Service) Health() httprouter.Handle {
 	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		health := &model.HealthResponse{
-			Service: constants.ServiceName,
+			Service: ServiceName,
 			Version: constants.Version,
 		}
 		var failures = []string{}
 		var httpCode = http.StatusOK
-
+		// Check database connection
 		if err := h.db.Ping(r.Context()); err != nil {
 			failures = append(failures, fmt.Sprintf("db Ping error: %v", err))
+		}
+		// Ping event backend
+		if err := h.events.Ping(r.Context()); err != nil {
+			failures = append(failures, fmt.Sprintf("event bus Ping error: %v", err))
 		}
 
 		health.Failures = failures

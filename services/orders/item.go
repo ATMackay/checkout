@@ -1,4 +1,4 @@
-package service
+package orders
 
 import (
 	"encoding/json"
@@ -68,7 +68,6 @@ func (h *Service) AddItems() httprouter.Handle {
 				respondWithError(w, http.StatusBadRequest, fmt.Errorf("item at index %d was invalid: %w", i, err))
 				return
 			}
-
 		}
 
 		its, err := h.db.UpsertItems(r.Context(), iReq.Items)

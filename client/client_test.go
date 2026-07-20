@@ -11,7 +11,7 @@ import (
 	"github.com/ATMackay/checkout/database"
 	srverrors "github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/model"
-	"github.com/ATMackay/checkout/service"
+	"github.com/ATMackay/checkout/services/orders"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := service.NewService(8001, db, "1234")
+	s := orders.NewService(8001, db, "1234", nil)
 	s.Start()
 
 	time.Sleep(10 * time.Millisecond)
@@ -113,7 +113,7 @@ func TestClient(t *testing.T) {
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		// incorrect verb
-		if err := cl.executeJSONRequest(ctx, http.MethodPut, service.HealthEndPnt, nil, nil); !errors.Is(err, srverrors.ErrMethodNotAllowed) {
+		if err := cl.executeJSONRequest(ctx, http.MethodPut, orders.HealthEndPnt, nil, nil); !errors.Is(err, srverrors.ErrMethodNotAllowed) {
 			t.Fatalf("expected error got %v", err)
 		}
 	})

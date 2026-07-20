@@ -1,4 +1,4 @@
-package service
+package orders
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/database"
+	"github.com/ATMackay/checkout/messaging"
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
@@ -92,7 +93,9 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 				// Skip if we cannot add
 				continue
 			}
+			// Note DB tx can fail if concurrent requests push InventoryQuantity below zero
 			dbIt.InventoryQuantity--
+
 			items = append(items, dbIt)
 			skus = append(pReq.SKUs, sku)
 		}
@@ -115,6 +118,13 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			// Create order
 			if err := tx.AddOrder(ctx, order); err != nil {
 				return fmt.Errorf("failed to create order: %w", err)
+			}
+			// Add event publisher here within DB transaction (sync)
+			if err := h.events.Publish(ctx, &messaging.Event{
+				Topic: "orders.created",
+				Data:  order, // re-use order model for event propagation
+			}); err != nil {
+				return fmt.Errorf("failed to publish event; %w", err)
 			}
 			return nil
 		})

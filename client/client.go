@@ -13,7 +13,7 @@ import (
 
 	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/model"
-	"github.com/ATMackay/checkout/service"
+	"github.com/ATMackay/checkout/services/orders"
 )
 
 type Client struct {
@@ -131,7 +131,7 @@ func (c *Client) executeJSONRequest(ctx context.Context, method, path string, in
 
 func (client *Client) Status(ctx context.Context) (*model.StatusResponse, error) {
 	var status model.StatusResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, service.StatusEndPnt, nil, &status); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, orders.StatusEndPnt, nil, &status); err != nil {
 		return nil, err
 	}
 	return &status, nil
@@ -139,19 +139,19 @@ func (client *Client) Status(ctx context.Context) (*model.StatusResponse, error)
 
 func (client *Client) Health(ctx context.Context) (*model.HealthResponse, error) {
 	var health model.HealthResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, service.HealthEndPnt, nil, &health); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, orders.HealthEndPnt, nil, &health); err != nil {
 		return nil, err
 	}
 	return &health, nil
 }
 
 func (client *Client) AddItems(ctx context.Context, addItemReq *model.AddItemsRequest) error {
-	return client.executeJSONRequest(ctx, http.MethodPost, service.ItemsEndPnt, addItemReq, nil)
+	return client.executeJSONRequest(ctx, http.MethodPost, orders.ItemsEndPnt, addItemReq, nil)
 }
 
 func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {
 	var its []*model.Item
-	if err := client.executeJSONRequest(ctx, http.MethodGet, service.ItemsEndPnt, nil, &its); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, orders.ItemsEndPnt, nil, &its); err != nil {
 		return nil, err
 	}
 	return its, nil
@@ -159,7 +159,7 @@ func (client *Client) ListItems(ctx context.Context) ([]*model.Item, error) {
 
 func (client *Client) GetItemPrice(ctx context.Context, key string) (*model.PriceResponse, error) {
 	var itPriceResp model.PriceResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", service.ItemPriceEndPnt, key), nil, &itPriceResp); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, fmt.Sprintf("%s/%s", orders.ItemPriceEndPnt, key), nil, &itPriceResp); err != nil {
 		return nil, err
 	}
 	return &itPriceResp, nil
@@ -167,7 +167,7 @@ func (client *Client) GetItemPrice(ctx context.Context, key string) (*model.Pric
 
 func (client *Client) GetItemsPrice(ctx context.Context, itemsPriceReq *model.ItemsPriceRequest) (*model.PriceResponse, error) {
 	var itPriceResp model.PriceResponse
-	if err := client.executeJSONRequest(ctx, http.MethodPost, service.ItemPriceEndPnt, itemsPriceReq, &itPriceResp); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodPost, orders.ItemPriceEndPnt, itemsPriceReq, &itPriceResp); err != nil {
 		return nil, err
 	}
 	return &itPriceResp, nil
@@ -175,18 +175,18 @@ func (client *Client) GetItemsPrice(ctx context.Context, itemsPriceReq *model.It
 
 func (client *Client) PurchaseItems(ctx context.Context, itemsPriceReq *model.PurchaseItemsRequest) (*model.PurchaseItemsResponse, error) {
 	var itPurchaseResp model.PurchaseItemsResponse
-	if err := client.executeJSONRequest(ctx, http.MethodPost, service.ItemPurchaseEndPnt, itemsPriceReq, &itPurchaseResp); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodPost, orders.ItemPurchaseEndPnt, itemsPriceReq, &itPurchaseResp); err != nil {
 		return nil, err
 	}
 	return &itPurchaseResp, nil
 }
 
 func (client *Client) GetOrders(ctx context.Context) (*model.Orders, error) {
-	var orders model.Orders
-	if err := client.executeJSONRequest(ctx, http.MethodGet, service.OrdersEndPnt, nil, &orders); err != nil {
+	var ods model.Orders
+	if err := client.executeJSONRequest(ctx, http.MethodGet, orders.OrdersEndPnt, nil, &ods); err != nil {
 		return nil, err
 	}
-	return &orders, nil
+	return &ods, nil
 }
 
 type mdHeaderKey struct{}

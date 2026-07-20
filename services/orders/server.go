@@ -1,9 +1,9 @@
-// @title Checkout Service API
+// @title Checkout Orders Service API
 // @version 1.0
 // @description API for managing inventory and orders
 // @host localhost:8000
 // @BasePath /
-package service
+package orders
 
 import (
 	"context"
@@ -14,14 +14,17 @@ import (
 	"time"
 
 	"github.com/ATMackay/checkout/database"
+	"github.com/ATMackay/checkout/messaging"
 	"github.com/ATMackay/checkout/promotions"
 )
 
 // Service executes business logic, handles requests, and provides access to the connected Database.
 type Service struct {
+	// Service attributed must be non-empty
 	server           *http.Server
 	db               database.Database
 	promotionsEngine *promotions.PromotionsEngine
+	events           messaging.Publisher
 
 	authPassword string
 
@@ -30,7 +33,7 @@ type Service struct {
 
 // NewService returns a Service with httprouter Router
 // handling requests.
-func NewService(port int, db database.Database, authPasswd string) *Service {
+func NewService(port int, db database.Database, authPasswd string, eventPublisher messaging.Publisher) *Service {
 	srv := &Service{
 		server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", port),
@@ -42,7 +45,8 @@ func NewService(port int, db database.Database, authPasswd string) *Service {
 			&promotions.GoogleTVPromotion{},
 			&promotions.AlexaSpeakerPromotion{}, // Add more deals/promotions to the engine
 		),
-		authPassword: authPasswd,
+		events:       eventPublisher, // Noop or Kafka
+		authPassword: authPasswd,     // TODO - Strengthen Auth system
 	}
 
 	srv.registerHandlers()

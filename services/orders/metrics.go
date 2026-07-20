@@ -1,4 +1,4 @@
-package service
+package orders
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
