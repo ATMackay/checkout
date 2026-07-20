@@ -52,7 +52,8 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      # No shell or wget in the distroless image: the binary probes itself.
+      test: ["CMD", "/usr/local/bin/checkout", "health"]
       interval: 10s
       timeout: 3s
       retries: 30
@@ -85,7 +86,8 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health || exit 1"]
+      # No shell or wget in the distroless image: the binary probes itself.
+      test: ["CMD", "/usr/local/bin/checkout", "health"]
       interval: 10s
       timeout: 3s
       retries: 30

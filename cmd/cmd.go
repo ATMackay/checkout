@@ -19,6 +19,7 @@ func NewCheckoutCmd() *cobra.Command {
 
 	cmd.AddCommand(NewRunCmd())
 	cmd.AddCommand(VersionCmd())
+	cmd.AddCommand(HealthCmd())
 	return cmd
 }
 
