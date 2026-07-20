@@ -27,11 +27,35 @@ LDFLAGS := -s -w \
   -X '$(CONSTANTS_PKG).BuildDate=$(BUILD_DATE)' \
   -X '$(CONSTANTS_PKG).Dirty=$(DIRTY)'
 
+# Static build settings.
+#
+# go-sqlite3 is a cgo package, so CGO_ENABLED=1 is mandatory — a CGO_ENABLED=0
+# binary compiles but fails at runtime with "go-sqlite3 requires cgo to work".
+# Linking statically against musl lets the resulting binary run on a base image
+# with no libc at all (distroless/static, scratch).
+#
+#   osusergo,netgo               use the pure-Go user and DNS resolvers rather
+#                                than libc NSS, which does not work statically
+#   sqlite_omit_load_extension   drop SQLite's dlopen-based extension loading,
+#                                which cannot work in a static binary
+STATIC_TAGS    := osusergo,netgo,sqlite_omit_load_extension
+STATIC_LDFLAGS := $(LDFLAGS) -linkmode external -extldflags "-static"
+
 build:
 	@mkdir -p build
 	@echo ">> building $(BIN) (version=$(VERSION_TAG) commit=$(GIT_COMMIT) dirty=$(DIRTY))"
 	GO111MODULE=on go build -ldflags "$(LDFLAGS)" -o $(BIN)
 	@echo  "Checkout server successfully built. To run the application execute './$(BIN) run'"
+
+# build-static produces a fully static binary for container images. Requires a
+# C toolchain (build-base on Alpine).
+build-static:
+	@mkdir -p build
+	@echo ">> building static $(BIN) (version=$(VERSION_TAG) commit=$(GIT_COMMIT) dirty=$(DIRTY))"
+	CGO_ENABLED=1 GO111MODULE=on go build \
+	  -tags "$(STATIC_TAGS)" \
+	  -ldflags '$(STATIC_LDFLAGS)' \
+	  -o $(BIN)
 
 install: build
 	mv $(BIN) $(GOBIN)
@@ -85,4 +109,4 @@ mocks:
 	@go install go.uber.org/mock/mockgen@latest
 	@mockgen -source database/database.go -destination ./database/mock/database_mock.go -package mock database
 
-.PHONY: build run docker test test-coverage docker-run-db swag-install openapi api-docs mocks
+.PHONY: build build-static run docker test test-coverage docker-run-db swag-install openapi api-docs mocks
