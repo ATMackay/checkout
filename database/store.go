@@ -17,7 +17,7 @@ type InventoryStore interface {
 
 type OrderStore interface {
 	AddOrder(ctx context.Context, o *model.Order) error
-	GetOrders(ctx context.Context) ([]*model.Order, error)
+	GetOrders(ctx context.Context, userID string) ([]*model.Order, error)
 }
 
 // OutboxStore persists and drains transactional outbox rows.

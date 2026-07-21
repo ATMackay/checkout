@@ -9,6 +9,7 @@ import (
 	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
@@ -29,6 +30,12 @@ import (
 func (h *Service) PurchaseItems() httprouter.Handle {
 	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
 		ctx := r.Context()
+
+		// Inspect UserID/CustomerID
+		customerID, ok := auth.UserID(ctx)
+		if !ok {
+			return nil, fmt.Errorf("%w", errors.ErrInvalidInput)
+		}
 
 		var pReq model.PurchaseItemsRequest
 		if err := json.NewDecoder(r.Body).Decode(&pReq); err != nil {
@@ -97,7 +104,11 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 		price := total.Sub(decimal.NewFromFloat(promotions.Deduction))
 
 		// Create order
-		order := &model.Order{Price: price, Reference: model.GenerateReference()}
+		order := &model.Order{
+			Price:      price,
+			Reference:  model.GenerateReference(),
+			CustomerID: customerID,
+		}
 		if err := order.SetSKUList(skus); err != nil {
 			return nil, err
 		}

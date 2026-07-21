@@ -72,12 +72,12 @@ func makeServiceAPI(h *Service) *API {
 		{
 			path:       OrdersEndPnt, // Add new items to the inventory item table
 			methodType: http.MethodGet,
-			handler:    middleware.Auth(h.authPassword)(h.Orders()),
+			handler:    middleware.Auth(h.authn)(h.Orders()),
 		},
 		{
 			path:       ItemsEndPnt, // Add new items to the inventory item table
 			methodType: http.MethodPost,
-			handler:    middleware.Auth(h.authPassword)(h.AddItems()),
+			handler:    middleware.Auth(h.authn)(h.AddItems()),
 		},
 	},
 	)

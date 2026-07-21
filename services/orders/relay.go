@@ -94,11 +94,13 @@ func (o *OutboxRelayer) run() {
 	ticker := time.NewTicker(o.pollInterval)
 	defer ticker.Stop()
 
+	var counter int64
 	for {
 		select {
 		case <-o.quit:
 			return
 		case <-ticker.C:
+			slog.Debug("checking outbox", "tick", counter)
 			o.drain(context.Background())
 		}
 	}
@@ -116,6 +118,10 @@ func (o *OutboxRelayer) drain(ctx context.Context) {
 			slog.Error("outbox scan failed", "error", err)
 			return
 		}
+		if len(items) < 1 {
+			return
+		}
+		slog.Info("publishing events", "item_count", len(items))
 		for _, item := range items {
 			o.publish(ctx, item)
 		}
@@ -143,6 +149,7 @@ func (o *OutboxRelayer) publish(ctx context.Context, item *model.OutboxItem) {
 	if err := o.outboxStore.SetPublishedAt(ctx, item.ID, time.Now().UTC()); err != nil {
 		slog.Error("outbox item mark-published failed", "id", item.ID, "event_id", item.EventID, "error", err)
 	}
+	slog.Debug("published event", "event_id", ev.ID, "payload_size", len(item.Data))
 }
 
 // Ping reports broker reachability, for the service health probe.

@@ -10,6 +10,7 @@ import (
 
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/promotions"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -19,13 +20,14 @@ type Service struct {
 	db               database.Database
 	promotionsEngine *promotions.PromotionsEngine
 	relay            Relayer
-	// Basic Auth
-	authPassword string
+	// authn resolves credentials for the service's protected routes. Injected
+	// like any other dependency; the service knows which routes need it.
+	authn auth.Authenticator
 }
 
 // NewService constructs the orders domain service. The listening port is not
 // its concern — the httpserver that wraps it owns that.
-func NewService(db database.Database, authPasswd string, relayer Relayer) *Service {
+func NewService(db database.Database, relayer Relayer, authn auth.Authenticator) *Service {
 	srv := &Service{
 		db: db,
 		promotionsEngine: promotions.NewPromotionsEngine(
@@ -33,8 +35,8 @@ func NewService(db database.Database, authPasswd string, relayer Relayer) *Servi
 			&promotions.GoogleTVPromotion{},
 			&promotions.AlexaSpeakerPromotion{}, // Add more deals/promotions to the engine
 		),
-		relay:        relayer,    // Noop or Kafka
-		authPassword: authPasswd, // TODO - Strengthen Auth system
+		relay: relayer, // Noop or Kafka
+		authn: authn,
 	}
 
 	return srv

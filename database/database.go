@@ -149,11 +149,11 @@ func (g *GormDB) AddOrder(ctx context.Context, o *model.Order) error {
 	return g.db.WithContext(ctx).Create(o).Error
 }
 
-func (g *GormDB) GetOrders(ctx context.Context) ([]*model.Order, error) {
+func (g *GormDB) GetOrders(ctx context.Context, customerID string) ([]*model.Order, error) {
 
 	var os []*model.Order
 
-	if err := g.db.WithContext(ctx).Order("id DESC").Find(&os).Error; err != nil {
+	if err := g.db.WithContext(ctx).Order("id DESC").Where("customer_id = ?", customerID).Find(&os).Error; err != nil {
 		return nil, err
 	}
 

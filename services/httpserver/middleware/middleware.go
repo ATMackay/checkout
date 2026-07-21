@@ -10,8 +10,14 @@ import (
 	"time"
 
 	"github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/julienschmidt/httprouter"
 )
+
+// XAuthHeaderKey is the request header carrying the shared password in the
+// pre-JWT auth mode. The header is an HTTP detail owned here, not by the
+// transport-neutral auth package.
+const XAuthHeaderKey = "X-Auth-Password"
 
 // Observer wraps an http.Handler with request logging and Prometheus metrics.
 // The httpserver applies it once around the whole router, so every service —
@@ -34,7 +40,7 @@ func Observer(next http.Handler) http.Handler {
 		attrs := []any{
 			"http_method", req.Method,
 			"http_code", rec.statusCode,
-			"elapsed_us", elapsed.Microseconds(),
+			"elapsed", elapsed.Microseconds(),
 			"url", req.URL.Path,
 		}
 		// Only warn on error responses; everything else is debug-level detail.
@@ -46,17 +52,21 @@ func Observer(next http.Handler) http.Handler {
 	})
 }
 
-// Auth returns middleware that rejects requests whose X-Auth-Password header does
-// not match password. It is deliberately per-route: services wrap the handlers
-// that need protection and leave probes and metrics open.
-func Auth(password string) func(httprouter.Handle) httprouter.Handle {
+// Auth returns middleware that resolves the credential in the X-Auth-Password
+// header to a user ID via authn, injects it into the request context, and
+// rejects the request with 401 if resolution fails. It is deliberately
+// per-route: services wrap the handlers that need protection and leave probes
+// and metrics open.
+func Auth(authn auth.Authenticator) func(httprouter.Handle) httprouter.Handle {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-			if req.Header.Get("X-Auth-Password") != password {
+			userID, err := authn.Authenticate(req.Header.Get(XAuthHeaderKey))
+			if err != nil {
 				writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
-			h(w, req, p)
+			// Downstream handlers read identity via auth.UserID(ctx).
+			h(w, req.WithContext(auth.WithUserID(req.Context(), userID)), p)
 		}
 	}
 }

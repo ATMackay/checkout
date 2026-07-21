@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/ATMackay/checkout/database/mock"
+	"github.com/ATMackay/checkout/services/auth"
 	ordersmock "github.com/ATMackay/checkout/services/orders/mock"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,9 @@ func Test_ServiceMethods(t *testing.T) {
 	relay := ordersmock.NewMockRelayer(ctrl)
 	relay.EXPECT().Ping(gomock.Any()).Return(nil).AnyTimes()
 
-	s := NewService(db, "", relay)
+	// These cases hit Status/Health directly, not the auth-guarded routes, so an
+	// empty authenticator suffices.
+	s := NewService(db, relay, auth.NewPasswordAuthenticator(nil))
 
 	ctx := context.Background()
 	tests := []struct {

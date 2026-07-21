@@ -58,9 +58,9 @@ build-static:
 install: build
 	mv $(BIN) $(GOBIN)
 
-# TODO
+# Run orders service with DEBUG logging
 run-orders: build
-	@./$(BUILD_FOLDER)/checkout run orders --memory-db
+	@./$(BUILD_FOLDER)/checkout run orders --memory-db --log-level debug
 
 build/coverage:
 	@mkdir -p $(COVERAGE_BUILD_FOLDER)

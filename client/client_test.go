@@ -14,6 +14,7 @@ import (
 	srverrors "github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/ATMackay/checkout/services/orders"
 	"github.com/shopspring/decimal"
@@ -28,7 +29,8 @@ func TestClient(t *testing.T) {
 	}
 
 	relayer := orders.NewOutboxRelayer(db, &noop.Client{})
-	svc := orders.NewService(db, "1234", relayer)
+	authn := auth.NewPasswordAuthenticator(map[string]string{"1234": "test-user"})
+	svc := orders.NewService(db, relayer, authn)
 	svr := httpserver.New(8001, svc)
 	if err := svr.Start(context.Background()); err != nil {
 		t.Fatal(err)

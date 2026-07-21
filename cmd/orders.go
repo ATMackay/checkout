@@ -13,11 +13,16 @@ import (
 	"github.com/ATMackay/checkout/messaging"
 	"github.com/ATMackay/checkout/messaging/kafka"
 	"github.com/ATMackay/checkout/messaging/noop"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/ATMackay/checkout/services/orders"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+// DefaultUserID is the placeholder identity the single shared password resolves
+// to under simple password auth, until per-user token auth (JWT) lands.
+const DefaultUserID = "default-user"
 
 // NewOrdersCmd runs the Orders API server
 func NewOrdersCmd() *cobra.Command {
@@ -85,7 +90,10 @@ func NewOrdersCmd() *cobra.Command {
 			// domain service, then wrap both in the HTTP server that owns their
 			// lifecycle.
 			relayer := orders.NewOutboxRelayer(db, cl)
-			svc := orders.NewService(db, authPassword, relayer)
+			// Simple password auth (pre-JWT): the single configured password maps
+			// to a placeholder user ID until real users arrive with token auth.
+			authn := auth.NewPasswordAuthenticator(map[string]string{authPassword: DefaultUserID})
+			svc := orders.NewService(db, relayer, authn)
 			svr := httpserver.New(port, svc)
 
 			// Start listener + relay.

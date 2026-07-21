@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 )
@@ -21,7 +23,13 @@ import (
 // @Router /v1/orders [get]
 func (h *Service) Orders() httprouter.Handle {
 	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
-		os, err := h.db.GetOrders(r.Context())
+		ctx := r.Context()
+		// Inspect UserID
+		userID, ok := auth.UserID(ctx)
+		if !ok {
+			return nil, fmt.Errorf("%w", errors.ErrInvalidInput)
+		}
+		os, err := h.db.GetOrders(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("could not get orders from db: %w", err)
 		}

@@ -117,18 +117,18 @@ func (mr *MockDatabaseMockRecorder) GetItemsBySKU(ctx, sku any) *gomock.Call {
 }
 
 // GetOrders mocks base method.
-func (m *MockDatabase) GetOrders(ctx context.Context) ([]*model.Order, error) {
+func (m *MockDatabase) GetOrders(ctx context.Context, userID string) ([]*model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrders", ctx)
+	ret := m.ctrl.Call(m, "GetOrders", ctx, userID)
 	ret0, _ := ret[0].([]*model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOrders indicates an expected call of GetOrders.
-func (mr *MockDatabaseMockRecorder) GetOrders(ctx any) *gomock.Call {
+func (mr *MockDatabaseMockRecorder) GetOrders(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrders", reflect.TypeOf((*MockDatabase)(nil).GetOrders), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrders", reflect.TypeOf((*MockDatabase)(nil).GetOrders), ctx, userID)
 }
 
 // GetOutboxItems mocks base method.
@@ -408,18 +408,18 @@ func (mr *MockOrderStoreMockRecorder) AddOrder(ctx, o any) *gomock.Call {
 }
 
 // GetOrders mocks base method.
-func (m *MockOrderStore) GetOrders(ctx context.Context) ([]*model.Order, error) {
+func (m *MockOrderStore) GetOrders(ctx context.Context, userID string) ([]*model.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOrders", ctx)
+	ret := m.ctrl.Call(m, "GetOrders", ctx, userID)
 	ret0, _ := ret[0].([]*model.Order)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOrders indicates an expected call of GetOrders.
-func (mr *MockOrderStoreMockRecorder) GetOrders(ctx any) *gomock.Call {
+func (mr *MockOrderStoreMockRecorder) GetOrders(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrders", reflect.TypeOf((*MockOrderStore)(nil).GetOrders), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrders", reflect.TypeOf((*MockOrderStore)(nil).GetOrders), ctx, userID)
 }
 
 // MockOutboxStore is a mock of OutboxStore interface.
