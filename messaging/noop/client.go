@@ -16,7 +16,7 @@ type Client struct{}
 
 var _ messaging.Publisher = (*Client)(nil)
 
-func (c *Client) Publish(ctx context.Context, ev *event.Event) error {
+func (c *Client) Publish(context.Context, *event.Event) error {
 	return nil
 }
 
@@ -24,6 +24,6 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func (c *Client) Ping(_ context.Context) error {
+func (c *Client) Ping(context.Context) error {
 	return nil
 }

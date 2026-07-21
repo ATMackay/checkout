@@ -13,6 +13,7 @@ import (
 	"github.com/ATMackay/checkout/messaging"
 	"github.com/ATMackay/checkout/messaging/kafka"
 	"github.com/ATMackay/checkout/messaging/noop"
+	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/ATMackay/checkout/services/orders"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -80,10 +81,17 @@ func NewOrdersCmd() *cobra.Command {
 				"commit", constants.GitCommit,
 				"version", constants.Version,
 			)
-			// Build Service
-			svc := orders.NewService(port, db, authPassword, cl)
-			// Start the server
-			svc.Start()
+			// Build the relay (outbox -> broker) over the publisher, then the
+			// domain service, then wrap both in the HTTP server that owns their
+			// lifecycle.
+			relayer := orders.NewOutboxRelayer(db, cl)
+			svc := orders.NewService(db, authPassword, relayer)
+			svr := httpserver.New(port, svc)
+
+			// Start listener + relay.
+			if err := svr.Start(cmd.Context()); err != nil {
+				return fmt.Errorf("failed to start service: %w", err)
+			}
 
 			sigChan := make(chan os.Signal, 1)
 			// Wait for kill signal
@@ -91,7 +99,7 @@ func NewOrdersCmd() *cobra.Command {
 			sig := <-sigChan
 			// Stop server
 			slog.Warn("received shutdown signal", "signal", sig)
-			if err := svc.Stop(); err != nil {
+			if err := svr.Stop(); err != nil {
 				slog.Error("error while shutting down", "error", err)
 			}
 

@@ -14,6 +14,7 @@ import (
 	srverrors "github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/ATMackay/checkout/services/orders"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
@@ -26,11 +27,16 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := orders.NewService(8001, db, "1234", &noop.Client{})
-	s.Start()
+	relayer := orders.NewOutboxRelayer(db, &noop.Client{})
+	svc := orders.NewService(db, "1234", relayer)
+	svr := httpserver.New(8001, svc)
+	if err := svr.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svr.Stop() })
 
 	time.Sleep(10 * time.Millisecond)
-	baseUrl := fmt.Sprintf("http://0.0.0.0%v", s.Addr())
+	baseUrl := fmt.Sprintf("http://0.0.0.0%v", svr.Port())
 
 	cl, err := New(baseUrl)
 	if err != nil {

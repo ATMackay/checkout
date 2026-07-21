@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -19,17 +20,11 @@ import (
 // @Failure 500 {object} errors.JSONError
 // @Router /v1/orders [get]
 func (h *Service) Orders() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
 		os, err := h.db.GetOrders(r.Context())
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not get orders from db: %w", err))
-			return
+			return nil, fmt.Errorf("could not get orders from db: %w", err)
 		}
-
-		if err := respondWithJSON(w, http.StatusOK, &os); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+		return os, nil
 	})
-
 }

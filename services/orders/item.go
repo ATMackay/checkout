@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
 )
@@ -20,16 +22,8 @@ import (
 // @Security     XAuthPassword
 // @Router       /v1/inventory/items [get]
 func (h *Service) ListItems() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		its, err := h.db.ListItems(r.Context())
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		if err := respondWithJSON(w, http.StatusOK, its); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
+		return h.db.ListItems(r.Context())
 	})
 }
 
@@ -48,37 +42,24 @@ func (h *Service) ListItems() httprouter.Handle {
 // @Security     XAuthPassword
 // @Router       /v1/inventory/items [post]
 func (h *Service) AddItems() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-
+	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
 		var iReq model.AddItemsRequest
-
 		if err := json.NewDecoder(r.Body).Decode(&iReq); err != nil {
-			respondWithError(w, http.StatusBadRequest, err)
-			return
+			return nil, fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
 		}
 
 		if len(iReq.Items) == 0 {
-			respondWithError(w, http.StatusBadRequest, fmt.Errorf("no items provided"))
-			return
+			return nil, fmt.Errorf("%w: no items provided", errors.ErrInvalidInput)
 		}
 
 		// validate
 		for i, it := range iReq.Items {
 			if err := it.Validate(); err != nil {
-				respondWithError(w, http.StatusBadRequest, fmt.Errorf("item at index %d was invalid: %w", i, err))
-				return
+				return nil, fmt.Errorf("%w: item at index %d was invalid: %v", errors.ErrInvalidInput, i, err)
 			}
 		}
 
-		its, err := h.db.UpsertItems(r.Context(), iReq.Items)
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		if err := respondWithJSON(w, http.StatusOK, its); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+		return h.db.UpsertItems(r.Context(), iReq.Items)
 	})
 }
 
@@ -94,8 +75,7 @@ func (h *Service) AddItems() httprouter.Handle {
 // @Failure      500   {object}  errors.JSONError
 // @Router       /v1/inventory/item/price/{key} [get]
 func (h *Service) ItemPrice() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-
+	return httpserver.Handle(func(r *http.Request, p httprouter.Params) (any, error) {
 		ctx := r.Context()
 		nameOrSku := p.ByName("key")
 		var dbItem *model.Item
@@ -107,21 +87,17 @@ func (h *Service) ItemPrice() httprouter.Handle {
 			dbItem, err = h.db.GetItemByName(ctx, nameOrSku)
 		}
 		if err != nil {
-			respondWithError(w, http.StatusBadRequest, fmt.Errorf("could not get item with key '%s' :%w", nameOrSku, err))
-			return
+			return nil, fmt.Errorf("could not get item with key '%s': %w", nameOrSku, err)
 		}
 		if dbItem.InventoryQuantity < 1 {
-			respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", dbItem.SKU))
-			return
+			return nil, fmt.Errorf("%w: item %s empty", errors.ErrNotFound, dbItem.SKU)
 		}
 
-		if err := respondWithJSON(w, http.StatusOK, &model.PriceResponse{
+		return &model.PriceResponse{
 			Items:             []*model.Item{{Name: dbItem.Name, SKU: dbItem.SKU, Price: dbItem.Price}},
 			TotalGross:        dbItem.Price.InexactFloat64(),
 			TotalWithDiscount: dbItem.Price.InexactFloat64(),
-		}); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+		}, nil
 	})
 }
 
@@ -138,37 +114,31 @@ func (h *Service) ItemPrice() httprouter.Handle {
 // @Failure      500      {object} errors.JSONError
 // @Router       /v1/inventory/items/price [post]
 func (h *Service) ItemsPrice() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
 		ctx := r.Context()
 
 		var pReq model.ItemsPriceRequest
-
 		if err := json.NewDecoder(r.Body).Decode(&pReq); err != nil {
-			respondWithError(w, http.StatusBadRequest, err)
-			return
+			return nil, fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
 		}
 
 		// validate request params
 		for _, sku := range pReq.SKUs {
 			if !model.IsSKU(sku) {
-				respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid sku input '%s'", sku))
-				return
+				return nil, fmt.Errorf("%w: invalid sku input '%s'", errors.ErrInvalidInput, sku)
 			}
 		}
 
 		dbItems, err := h.db.GetItemsBySKU(ctx, pReq.SKUs)
 		if err != nil {
-			respondWithError(w, http.StatusBadRequest, fmt.Errorf("could not get items: %w", err))
-			return
+			return nil, fmt.Errorf("could not get items: %w", err)
 		}
 
 		resp := &model.PriceResponse{}
 		total := decimal.Zero
 		for _, it := range dbItems {
 			if it.InventoryQuantity < 1 {
-				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
-				return
+				return nil, fmt.Errorf("%w: item %s empty", errors.ErrNotFound, it.SKU)
 			}
 			resp.Items = append(resp.Items, it)
 			total = total.Add(it.Price)
@@ -176,16 +146,13 @@ func (h *Service) ItemsPrice() httprouter.Handle {
 
 		promotions, err := h.promotionsEngine.ApplyPromotions(ctx, resp.Items)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not apply promotion/deals: %w", err))
-			return
+			return nil, fmt.Errorf("could not apply promotion/deals: %w", err)
 		}
 
 		resp.Promotions = promotions
 		resp.TotalGross = total.InexactFloat64()
 		resp.TotalWithDiscount = total.InexactFloat64() - promotions.Deduction
 
-		if err := respondWithJSON(w, http.StatusOK, resp); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+		return resp, nil
 	})
 }

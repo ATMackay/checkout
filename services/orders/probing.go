@@ -2,10 +2,12 @@ package orders
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/ATMackay/checkout/constants"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -18,9 +20,8 @@ import (
 // @Failure 500 {object} errors.JSONError
 // @Router /status [get]
 func Status() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		// Fixed response never errors
-		_ = respondWithJSON(w, http.StatusOK, &model.StatusResponse{Message: "OK", Version: constants.Version, Service: ServiceName})
+	return httpserver.Handle(func(*http.Request, httprouter.Params) (any, error) {
+		return &model.StatusResponse{Message: "OK", Version: constants.Version, Service: ServiceName}, nil
 	})
 }
 
@@ -33,31 +34,32 @@ func Status() httprouter.Handle {
 // @Failure 503 {object} model.HealthResponse
 // @Failure 500 {object} errors.JSONError
 // @Router /health [get]
+// Health is bespoke rather than routed through httpserver.Handle: it returns a
+// full report body with a 503 status when unhealthy, which the Handle adapter
+// (payload OR error) cannot express. It writes directly via httpserver.WriteJSON.
 func (h *Service) Health() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		health := &model.HealthResponse{
 			Service: ServiceName,
 			Version: constants.Version,
 		}
-		var failures = []string{}
-		var httpCode = http.StatusOK
+		failures := []string{}
 		// Check database connection
 		if err := h.db.Ping(r.Context()); err != nil {
 			failures = append(failures, fmt.Sprintf("db Ping error: %v", err))
 		}
-		// Ping event backend
-		if err := h.events.Ping(r.Context()); err != nil {
+		// Ping event relay backend
+		if err := h.relay.Ping(r.Context()); err != nil {
 			failures = append(failures, fmt.Sprintf("event bus Ping error: %v", err))
 		}
-
 		health.Failures = failures
 
-		if len(health.Failures) > 0 {
-			httpCode = http.StatusServiceUnavailable
+		code := http.StatusOK
+		if len(failures) > 0 {
+			code = http.StatusServiceUnavailable
 		}
-
-		if err := respondWithJSON(w, httpCode, health); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
+		if err := httpserver.WriteJSON(w, code, health); err != nil {
+			slog.Error("failed to write health response", "error", err)
 		}
-	})
+	}
 }

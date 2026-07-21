@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/database"
+	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
 )
@@ -25,30 +27,25 @@ import (
 // @Failure 503 {object} errors.JSONError
 // @Router /v1/inventory/items/purchase [post]
 func (h *Service) PurchaseItems() httprouter.Handle {
-	return httprouter.Handle(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
 		ctx := r.Context()
 
 		var pReq model.PurchaseItemsRequest
-
 		if err := json.NewDecoder(r.Body).Decode(&pReq); err != nil {
-			respondWithError(w, http.StatusBadRequest, err)
-			return
+			return nil, fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
 		}
 
 		// validate request params
 		for _, sku := range pReq.SKUs {
 			if !model.IsSKU(sku) {
-				respondWithError(w, http.StatusBadRequest, fmt.Errorf("invalid sku input '%s'", sku))
-				return
+				return nil, fmt.Errorf("%w: invalid sku input '%s'", errors.ErrInvalidInput, sku)
 			}
 		}
 
 		// Fetch items from DB
 		dbItems, err := h.db.GetItemsBySKU(ctx, pReq.SKUs)
 		if err != nil {
-			respondWithError(w, http.StatusBadRequest, fmt.Errorf("could not get items: %w", err))
-			return
+			return nil, fmt.Errorf("could not get items: %w", err)
 		}
 
 		dbItemMap := make(map[string]*model.Item)
@@ -65,8 +62,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			itemCount[sku]++
 			it := dbItemMap[sku]
 			if it.InventoryQuantity < itemCount[it.SKU] {
-				respondWithError(w, http.StatusNotFound, fmt.Errorf("item %s empty", it.SKU))
-				return
+				return nil, fmt.Errorf("%w: item %s empty", errors.ErrNotFound, it.SKU)
 			}
 			total = total.Add(it.Price)
 			// deduct inventory
@@ -77,8 +73,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 
 		promotions, err := h.promotionsEngine.ApplyPromotions(ctx, items)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, fmt.Errorf("could not apply promotion/deals: %w", err))
-			return
+			return nil, fmt.Errorf("could not apply promotion/deals: %w", err)
 		}
 
 		for _, it := range promotions.AddedItems {
@@ -86,14 +81,13 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			itemCount[sku]++
 			dbIt, err := h.db.GetItemBySKU(ctx, sku)
 			if err != nil {
-				respondWithError(w, http.StatusBadRequest, fmt.Errorf("could not get item: %w", err))
-				return
+				return nil, fmt.Errorf("could not get item: %w", err)
 			}
 			if dbIt.InventoryQuantity < itemCount[sku] {
 				// Skip if we cannot add
 				continue
 			}
-			// Note DB tx can fail if concurrent requests push InventoryQuantity below zero
+			// Note: DB tx can fail if concurrent requests push InventoryQuantity below zero
 			dbIt.InventoryQuantity--
 
 			items = append(items, dbIt)
@@ -105,8 +99,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 		// Create order
 		order := &model.Order{Price: price, Reference: model.GenerateReference()}
 		if err := order.SetSKUList(skus); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
+			return nil, err
 		}
 
 		// Execute purchase in a transaction to ensure atomicity
@@ -119,26 +112,27 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			if err := tx.AddOrder(ctx, order); err != nil {
 				return fmt.Errorf("failed to create order: %w", err)
 			}
-			// Add event publisher here within DB transaction (sync)
-			// Keyed by order reference so every event about a given order lands
-			// on one partition and is consumed in order. event.New stamps the
-			// ID consumers deduplicate on.
-			if err := h.events.Publish(ctx, event.New(
+			// Enqueue the event in the SAME transaction as the order. The relay
+			// publishes it to the broker asynchronously; writing it here (rather
+			// than publishing inline) is what makes the order and its event
+			// atomic — they commit together or not at all.
+			outboxItem, err := newOutboxItem(event.New(
 				TopicOrderCreated,
 				order.Reference,
 				order, // re-use order model for event propagation
-			)); err != nil {
-				return fmt.Errorf("failed to publish event; %w", err)
+			))
+			if err != nil {
+				return fmt.Errorf("failed to build outbox item: %w", err)
+			}
+			if err := tx.AddOutboxItems(ctx, []*model.OutboxItem{outboxItem}); err != nil {
+				return fmt.Errorf("failed to enqueue event: %w", err)
 			}
 			return nil
 		})
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-			return
+			return nil, err
 		}
 
-		if err := respondWithJSON(w, http.StatusOK, &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price.InexactFloat64()}); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err)
-		}
+		return &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price.InexactFloat64()}, nil
 	})
 }

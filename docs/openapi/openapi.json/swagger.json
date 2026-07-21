@@ -411,6 +411,7 @@
                     "type": "integer"
                 },
                 "inventory_quantity": {
+                    "description": "InventoryQuantity adds a non-zero check at the DB level",
                     "type": "integer"
                 },
                 "name": {
@@ -438,6 +439,9 @@
         "model.Order": {
             "type": "object",
             "properties": {
+                "customer_id": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },

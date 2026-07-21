@@ -1,11 +1,9 @@
 package orders
 
 import (
-	"encoding/json"
-	"log/slog"
 	"net/http"
 
-	"github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/services/middleware"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -74,12 +72,12 @@ func makeServiceAPI(h *Service) *API {
 		{
 			path:       OrdersEndPnt, // Add new items to the inventory item table
 			methodType: http.MethodGet,
-			handler:    h.authMiddleware(h.Orders()),
+			handler:    middleware.Auth(h.authPassword)(h.Orders()),
 		},
 		{
 			path:       ItemsEndPnt, // Add new items to the inventory item table
 			methodType: http.MethodPost,
-			handler:    h.authMiddleware(h.AddItems()),
+			handler:    middleware.Auth(h.authPassword)(h.AddItems()),
 		},
 	},
 	)
@@ -94,14 +92,8 @@ type endPoint struct {
 
 func addEndpoints(endpoints []endPoint) *API {
 	r := &API{}
-	for _, e := range endpoints {
-		r.addEndpoint(e)
-	}
+	r.endpoints = append(r.endpoints, endpoints...)
 	return r
-}
-
-func (a *API) addEndpoint(e endPoint) {
-	a.endpoints = append(a.endpoints, e)
 }
 
 // routes configures a new httprouter.Router.
@@ -109,33 +101,14 @@ func (a *API) routes() *httprouter.Router {
 
 	router := httprouter.New()
 
+	// Observability is applied by the httpserver around the whole router, so
+	// handlers register unwrapped here.
 	for _, e := range a.endpoints {
-		router.Handle(e.methodType, e.path, observerMiddleware(e.handler))
+		router.Handle(e.methodType, e.path, e.handler)
 	}
 
 	// Add metrics server
 	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())
 
 	return router
-}
-
-func respondWithJSON(w http.ResponseWriter, code int, payload any) error {
-	var response []byte
-	var err error
-	if payload != nil {
-		response, err = json.Marshal(payload)
-		if err != nil {
-			return err
-		}
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	_, err = w.Write(response)
-	return err
-}
-
-func respondWithError(w http.ResponseWriter, code int, err error) {
-	if writeErr := respondWithJSON(w, code, errors.JSONError{Error: err.Error()}); writeErr != nil {
-		slog.Error("failed to write error response", "error", writeErr, "original_error", err)
-	}
 }

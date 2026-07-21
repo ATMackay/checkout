@@ -7,6 +7,8 @@ import (
 	"github.com/ATMackay/checkout/event"
 )
 
+//go:generate mockgen -destination mock/messaging.go -package mock github.com/ATMackay/checkout/messaging Publisher,Consumer
+
 // Producer is an event producer
 type Publisher interface {
 	io.Closer

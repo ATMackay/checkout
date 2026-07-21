@@ -10,37 +10,25 @@ import (
 	"testing"
 
 	"github.com/ATMackay/checkout/database/mock"
-	"github.com/ATMackay/checkout/messaging/noop"
+	ordersmock "github.com/ATMackay/checkout/services/orders/mock"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_ServerStartStop(t *testing.T) {
-
-	s := NewService(8001, nil, "", nil)
-
-	s.Start()
-	// Wait until service goroutine has initialized
-	for !s.started.Load() {
-	}
-
-	require.Equal(t, ":8001", s.Addr())
-
-	if err := s.Stop(); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func Test_ServerEndpoints(t *testing.T) {
+func Test_ServiceMethods(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	db := mock.NewMockDatabase(ctrl)
 
-	s := NewService(8001, db, "", &noop.Client{})
+	// The relay stays healthy across every case so only the mocked db drives the
+	// health outcome; Health pings it on each probe.
+	relay := ordersmock.NewMockRelayer(ctrl)
+	relay.EXPECT().Ping(gomock.Any()).Return(nil).AnyTimes()
+
+	s := NewService(db, "", relay)
 
 	ctx := context.Background()
 	tests := []struct {

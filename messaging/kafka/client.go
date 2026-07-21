@@ -103,7 +103,6 @@ func (c *Client) Publish(ctx context.Context, ev *event.Event) error {
 	if err != nil {
 		return err
 	}
-	// TODO - move to async event production
 	res := c.client.ProduceSync(ctx, &kgo.Record{
 		Topic: ev.Topic,
 		Key:   []byte(ev.Key),

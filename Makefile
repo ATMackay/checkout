@@ -106,6 +106,6 @@ api-docs: openapi
 
 mocks:
 	@go install go.uber.org/mock/mockgen@latest
-	@mockgen -source database/database.go -destination ./database/mock/database_mock.go -package mock database
+	@go generate ./...
 
 .PHONY: build build-static run docker test test-coverage docker-run-db swag-install openapi api-docs mocks

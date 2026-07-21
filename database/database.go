@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-//go:generate mockgen -source database.go -destination ./mock/database_mock.go -package mock database
+//go:generate mockgen -destination ./mock/database_mock.go -package mock github.com/ATMackay/checkout/database Database,HealthChecker,InventoryStore,OrderStore,OutboxStore
 type Database interface {
 	HealthChecker
 	InventoryStore
