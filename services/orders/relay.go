@@ -164,5 +164,6 @@ func (o *OutboxRelayer) Ping(ctx context.Context) error {
 func (o *OutboxRelayer) Stop() error {
 	o.stopOnce.Do(func() { close(o.quit) })
 	o.wg.Wait()
+	slog.Debug("stopped relayer")
 	return o.publisher.Close()
 }

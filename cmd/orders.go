@@ -86,13 +86,14 @@ func NewOrdersCmd() *cobra.Command {
 				"commit", constants.GitCommit,
 				"version", constants.Version,
 			)
+			// Simple password auth (pre-JWT): the single configured password maps
+			// to a placeholder user ID until real users arrive with token auth.
+			authn := auth.NewPasswordAuthenticator(map[string]string{authPassword: DefaultUserID})
 			// Build the relay (outbox -> broker) over the publisher, then the
 			// domain service, then wrap both in the HTTP server that owns their
 			// lifecycle.
 			relayer := orders.NewOutboxRelayer(db, cl)
-			// Simple password auth (pre-JWT): the single configured password maps
-			// to a placeholder user ID until real users arrive with token auth.
-			authn := auth.NewPasswordAuthenticator(map[string]string{authPassword: DefaultUserID})
+
 			svc := orders.NewService(db, relayer, authn)
 			svr := httpserver.New(port, svc)
 
@@ -110,6 +111,7 @@ func NewOrdersCmd() *cobra.Command {
 			if err := svr.Stop(); err != nil {
 				slog.Error("error while shutting down", "error", err)
 			}
+			slog.Info("service terminated")
 
 			return nil
 		},

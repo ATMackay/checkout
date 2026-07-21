@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/messaging"
@@ -113,6 +114,7 @@ func (c *Client) Publish(ctx context.Context, ev *event.Event) error {
 
 func (c *Client) Close() error {
 	// Close client
+	slog.Debug("closing kafka client")
 	c.client.Close()
 	return nil
 }
