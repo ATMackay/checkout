@@ -107,12 +107,12 @@ func NewOrdersCmd() *cobra.Command {
 		},
 	}
 	// Bind flags and ENV vars
-	cmd.Flags().Int(FlagPort, 8080, "Port to run the server on")
+	cmd.Flags().Int(FlagPort, DefaultServerPort, "Port to run the server on")
 	cmd.Flags().String(FlagSQLite, "data/db", "Path to SQLite database file")
 	cmd.Flags().String(FlagDBUser, "", "Database user (for non-SQLite databases)")
 	cmd.Flags().String(FlagDBHost, "", "Database host (for non-SQLite databases)")
 	cmd.Flags().String(FlagDBPassword, "", "Database password (for non-SQLite databases)")
-	cmd.Flags().Int(FlagDBPort, 5432, "Database port (for non-SQLite databases)")
+	cmd.Flags().Int(FlagDBPort, DefaultDBPort, "Database port (for non-SQLite databases)")
 	cmd.Flags().Bool(FlagMemoryDB, false, "Use in-memory SQLite database")
 	cmd.Flags().Bool(FlagRecreateSchema, false, "Recreate DB schema (SQLite)")
 	// Logging
