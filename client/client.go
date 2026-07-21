@@ -13,6 +13,7 @@ import (
 
 	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/httpserver/middleware"
 	"github.com/ATMackay/checkout/services/orders"
 )
 
@@ -47,7 +48,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 
 func (c *Client) AddAuthorizationHeader(psswd string) {
 	c.mu.Lock()
-	c.hdr.Set("X-Auth-Password", psswd)
+	c.hdr.Set(middleware.XAuthHeaderKey, psswd)
 	c.mu.Unlock()
 }
 

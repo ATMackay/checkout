@@ -63,14 +63,14 @@ func makeServiceAPI(h *Service) *API {
 			methodType: http.MethodPost,
 			handler:    h.ItemsPrice(),
 		},
-		{
-			path:       ItemPurchaseEndPnt, // Execute purchase order
-			methodType: http.MethodPost,
-			handler:    h.PurchaseItems(),
-		},
 		// Authenticated requests
 		{
-			path:       OrdersEndPnt, // Add new items to the inventory item table
+			path:       ItemPurchaseEndPnt, // Execute purchase order (records the buyer)
+			methodType: http.MethodPost,
+			handler:    middleware.Auth(h.authn)(h.PurchaseItems()),
+		},
+		{
+			path:       OrdersEndPnt, // List the authenticated customer's orders
 			methodType: http.MethodGet,
 			handler:    middleware.Auth(h.authn)(h.Orders()),
 		},
