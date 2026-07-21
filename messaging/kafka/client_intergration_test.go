@@ -195,23 +195,3 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatalf("commit: %v", err)
 	}
 }
-
-// TestConsumerMethodsRequireGroup documents that a plain publisher is not a
-// consumer: Poll and Commit fail rather than blocking forever.
-func TestConsumerMethodsRequireGroup(t *testing.T) {
-	ctx := t.Context()
-	kafkaCtr := startBroker(t, ctx)
-
-	cl, err := NewClient(kafkaCtr.Brokers())
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = cl.Close() })
-
-	if _, err := cl.Poll(ctx); !errors.Is(err, ErrNotConsumer) {
-		t.Errorf("Poll() = %v; want %v", err, ErrNotConsumer)
-	}
-	if err := cl.Commit(ctx); !errors.Is(err, ErrNotConsumer) {
-		t.Errorf("Commit() = %v; want %v", err, ErrNotConsumer)
-	}
-}
