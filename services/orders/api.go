@@ -3,7 +3,7 @@ package orders
 import (
 	"net/http"
 
-	"github.com/ATMackay/checkout/services/middleware"
+	"github.com/ATMackay/checkout/services/httpserver/middleware"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
