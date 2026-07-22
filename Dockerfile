@@ -24,24 +24,15 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 COPY . .
 
-# Build metadata. Declared after the dependency layers so that changing the
-# commit SHA does not force a re-download of every module.
-ARG SERVICE
-ARG VERSION_TAG
-ARG GIT_COMMIT
-ARG COMMIT_DATE
-ARG BUILD_DATE
-ARG DIRTY
+# Build metadata. Only the semver is passed in; the commit SHA, commit date and
+# dirty flag are stamped by the toolchain from the copied .git (-buildvcs=true).
+# Declared after the dependency layers so a new commit doesn't re-download modules.
+ARG VERSION
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    echo ">> service=${SERVICE} version=${VERSION_TAG} commit=${GIT_COMMIT} dirty=${DIRTY}" && \
-    make build-static \
-      VERSION_TAG="${VERSION_TAG}" \
-      GIT_COMMIT="${GIT_COMMIT}" \
-      COMMIT_DATE="${COMMIT_DATE}" \
-      BUILD_DATE="${BUILD_DATE}" \
-      DIRTY="${DIRTY}"
+    git config --global --add safe.directory /src && \
+    make build-static VERSION="${VERSION}"
 
 # Fail the build if the binary is not actually static. A dynamically linked
 # binary would build fine here and then die with "no such file or directory" on

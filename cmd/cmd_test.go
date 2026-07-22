@@ -19,6 +19,8 @@ func Test_CheckoutCMD(t *testing.T) {
 }
 
 func Test_BuildDirty(t *testing.T) {
-	// Default value is false, overridden by ldflags.
-	require.False(t, isBuildDirty())
+	// isBuildDirty now reflects the toolchain's VCS "modified" stamp rather than
+	// an ldflag default, so its value depends on how this test binary was built;
+	// just exercise it. The parsing itself is covered by constants.Test_parseVCS.
+	_ = isBuildDirty()
 }

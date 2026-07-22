@@ -1,45 +1,31 @@
 #!/usr/bin/env bash
-
-#!/usr/bin/env bash
 set -Eeuo pipefail
 
 IMAGE_NAME=${IMAGE_NAME:-checkout}
-SERVICE=${SERVICE:-checkout}
 
-# Git info
+# Git info (used for image tagging only — the binary's commit/date/dirty are
+# stamped by the Go toolchain from the copied .git inside the build stage).
 commit_hash="$(git rev-parse HEAD)"
 commit_hash_short="$(git rev-parse --short=12 HEAD)"
-commit_timestamp="$(TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%M:%SZ "${commit_hash}")"     
-build_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"                        
 
 # Base tag from Git
 base_tag="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null)"
 
-# Dirty detection: non-empty output -> dirty
+# Dirty detection drives image tagging: dirty builds do not get :latest or a
+# clean :<sha> tag.
 if [[ -n "$(git status --porcelain)" ]]; then
-  dirty="true"
   version_tag="${base_tag}-dirty-${commit_hash_short}-$(date -u +%Y%m%d%H%M)"
-  tags=( "${IMAGE_NAME}:${version_tag}" )  # no :latest for dirty images
+  tags=( "${IMAGE_NAME}:${version_tag}" )
 else
-  dirty="false"
   version_tag="${base_tag}"
   tags=( "${IMAGE_NAME}:${version_tag}" "${IMAGE_NAME}:${commit_hash_short}" "${IMAGE_NAME}:latest" )
 fi
 
 echo ">> version_tag=${version_tag}"
 echo ">> commit=${commit_hash}"
-echo ">> dirty=${dirty}"
-echo ">> build_date=${build_date}"
 
-# Build args (propagated into your Makefile's -ldflags via Dockerfile)
-build_args="\
-  --build-arg SERVICE=${SERVICE} \
-  --build-arg GIT_COMMIT=${commit_hash} \
-  --build-arg COMMIT_DATE=${commit_timestamp} \
-  --build-arg VERSION_TAG=${version_tag} \
-  --build-arg BUILD_DATE=${build_date} \
-  --build-arg DIRTY=${dirty} \
-"
+# Only the semver is injected via ldflags; the toolchain stamps the rest.
+build_args="--build-arg VERSION=${version_tag}"
 
 # Primary tag = first in the list
 set -- $tags
@@ -56,6 +42,6 @@ done
 
 echo ">> Built tags:"
 printf '   %s\n' "${tags[@]}"
-       
+
 # Remove intermediate Docker layers
 docker image prune -f

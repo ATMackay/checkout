@@ -11,21 +11,18 @@ PKG                      ?= github.com/ATMackay/checkout
 CONSTANTS_PKG            ?= $(PKG)/constants
 
 
-# Git based version
-VERSION_TAG    ?= $(shell git describe --tags)
-GIT_COMMIT     ?= $(shell git rev-parse HEAD)
-BUILD_DATE     ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-COMMIT_DATE    ?= $(shell TZ=UTC git show -s --format=%cd --date=format:%Y-%m-%dT%H:%M:%SZ HEAD)
-ifndef DIRTY
-DIRTY := $(shell if [ -n "$$(git status --porcelain 2>/dev/null)" ]; then echo true; else echo false; fi)
-endif
+# Version.
+#
+# The commit SHA, commit date and dirty flag are stamped automatically by the Go
+# toolchain (-buildvcs=true) and read at runtime via runtime/debug.ReadBuildInfo
+# — see the constants package. Only the semver tag and the wall-clock build date
+# need injecting (the build date is not reproducible, hence not from VCS).
+VERSION    ?= $(shell git describe --tags 2>/dev/null || echo dev)
+BUILD_DATE ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 LDFLAGS := -s -w \
-  -X '$(CONSTANTS_PKG).Version=$(VERSION_TAG)' \
-  -X '$(CONSTANTS_PKG).CommitDate=$(COMMIT_DATE)' \
-  -X '$(CONSTANTS_PKG).GitCommit=$(GIT_COMMIT)' \
-  -X '$(CONSTANTS_PKG).BuildDate=$(BUILD_DATE)' \
-  -X '$(CONSTANTS_PKG).Dirty=$(DIRTY)'
+  -X '$(CONSTANTS_PKG).Version=$(VERSION)' \
+  -X '$(CONSTANTS_PKG).BuildDate=$(BUILD_DATE)'
 
 # Static build settings.
 #
@@ -43,16 +40,17 @@ STATIC_LDFLAGS := $(LDFLAGS) -linkmode external -extldflags "-static"
 
 build:
 	@mkdir -p build
-	@echo ">> building $(BIN) (version=$(VERSION_TAG) commit=$(GIT_COMMIT) dirty=$(DIRTY))"
-	GO111MODULE=on go build -ldflags "$(LDFLAGS)" -o $(BIN)
+	@echo ">> building $(BIN) (version=$(VERSION))"
+	GO111MODULE=on go build -buildvcs=true -ldflags "$(LDFLAGS)" -o $(BIN)
 	@echo  "Checkout server successfully built. To run the application execute './$(BIN) run'"
 
 # build-static produces a fully static binary for container images. Requires a
 # C toolchain (build-base on Alpine).
 build-static:
 	@mkdir -p build
-	@echo ">> building static $(BIN) (version=$(VERSION_TAG) commit=$(GIT_COMMIT) dirty=$(DIRTY))"
+	@echo ">> building static $(BIN) (version=$(VERSION))"
 	CGO_ENABLED=1 GO111MODULE=on go build \
+	  -buildvcs=true \
 	  -tags "$(STATIC_TAGS)" \
 	  -ldflags '$(STATIC_LDFLAGS)' \
 	  -o $(BIN)

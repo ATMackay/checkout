@@ -63,7 +63,8 @@ func NewRunCmd() *cobra.Command {
 				slog.Warn("running a DIRTY build (uncommitted changes present) — do not run in production")
 			}
 			slog.Info(fmt.Sprintf("starting %s", constants.ServiceName),
-				"compilation_date", constants.BuildDate,
+				"commit_date", constants.CommitDate,
+				"build_date", constants.BuildDate,
 				"commit", constants.GitCommit,
 				"version", constants.Version,
 			)
@@ -122,4 +123,4 @@ func NewRunCmd() *cobra.Command {
 	return cmd
 }
 
-func isBuildDirty() bool { return strings.EqualFold(constants.Dirty, "true") }
+func isBuildDirty() bool { return constants.Dirty }
