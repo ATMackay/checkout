@@ -209,13 +209,10 @@ func createCheckoutAppContainer(t *testing.T,
 		req.FromDockerfile = testcontainers.FromDockerfile{
 			Context:    "..",
 			Dockerfile: "Dockerfile",
+			// Only the semver is injected; commit/date/dirty are stamped by the
+			// toolchain from the copied .git (-buildvcs=true) inside the build.
 			BuildArgs: map[string]*string{
-				"SERVICE":     strPtr("checkout"),
-				"VERSION_TAG": strPtr(os.Getenv("VERSION_TAG") + "dev"), // or compute here
-				"GIT_COMMIT":  strPtr(os.Getenv("GIT_COMMIT")),
-				"COMMIT_DATE": strPtr(os.Getenv("COMMIT_DATE")),
-				"BUILD_DATE":  strPtr(os.Getenv("BUILD_DATE")),
-				"DIRTY":       strPtr(os.Getenv("DIRTY")),
+				"VERSION": strPtr(os.Getenv("VERSION_TAG") + "dev"),
 			},
 			KeepImage: true, // keep image for faster rebuilds
 		}
