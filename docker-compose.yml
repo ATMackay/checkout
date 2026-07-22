@@ -50,7 +50,7 @@ services:
       CHECKOUT_LOG_FORMAT: text                             # format logs (alternative: 'json')
       CHECKOUT_PASSWORD: ${PASSWORD:-1234}                  # change password if required
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8000}:8000"
     healthcheck:
       # No shell or wget in the distroless image: the binary probes itself.
       test: ["CMD", "/usr/local/bin/checkout", "health"]
@@ -84,7 +84,7 @@ services:
     volumes:
       - appdata:/data
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8000}:8000"
     healthcheck:
       # No shell or wget in the distroless image: the binary probes itself.
       test: ["CMD", "/usr/local/bin/checkout", "health"]

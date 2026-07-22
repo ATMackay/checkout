@@ -65,7 +65,7 @@ USER nonroot:nonroot
 WORKDIR /
 
 # Expose the default application port
-EXPOSE 8080
+EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=30 \
   CMD ["/usr/local/bin/checkout", "health"]

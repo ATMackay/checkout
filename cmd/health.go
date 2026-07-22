@@ -44,7 +44,7 @@ func HealthCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&addr, "addr", "http://127.0.0.1:8080", "Base URL of the service to probe")
+	cmd.Flags().StringVar(&addr, "addr", fmt.Sprintf("http://%s:%d", DefaultHost, DefaultServerPort), "Base URL of the service to probe")
 	cmd.Flags().DurationVar(&timeout, "timeout", 3*time.Second, "Probe timeout")
 	return cmd
 }
