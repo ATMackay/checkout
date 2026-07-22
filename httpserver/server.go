@@ -11,8 +11,8 @@ import (
 	"time"
 
 	srverrors "github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/httpserver/middleware"
 	"github.com/ATMackay/checkout/services"
-	"github.com/ATMackay/checkout/services/httpserver/middleware"
 	"github.com/julienschmidt/httprouter"
 )
 

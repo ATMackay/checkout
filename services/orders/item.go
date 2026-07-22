@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/model"
-	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
 )
@@ -23,7 +23,7 @@ import (
 // @Router       /v1/inventory/items [get]
 func (h *Service) ListItems() httprouter.Handle {
 	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
-		return h.db.ListItems(r.Context())
+		return h.store.ListItems(r.Context())
 	})
 }
 
@@ -59,7 +59,7 @@ func (h *Service) AddItems() httprouter.Handle {
 			}
 		}
 
-		return h.db.UpsertItems(r.Context(), iReq.Items)
+		return h.store.UpsertItems(r.Context(), iReq.Items)
 	})
 }
 
@@ -82,9 +82,9 @@ func (h *Service) ItemPrice() httprouter.Handle {
 		var err error
 
 		if model.IsSKU(nameOrSku) {
-			dbItem, err = h.db.GetItemBySKU(ctx, nameOrSku)
+			dbItem, err = h.store.GetItemBySKU(ctx, nameOrSku)
 		} else {
-			dbItem, err = h.db.GetItemByName(ctx, nameOrSku)
+			dbItem, err = h.store.GetItemByName(ctx, nameOrSku)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("could not get item with key '%s': %w", nameOrSku, err)
@@ -129,7 +129,7 @@ func (h *Service) ItemsPrice() httprouter.Handle {
 			}
 		}
 
-		dbItems, err := h.db.GetItemsBySKU(ctx, pReq.SKUs)
+		dbItems, err := h.store.GetItemsBySKU(ctx, pReq.SKUs)
 		if err != nil {
 			return nil, fmt.Errorf("could not get items: %w", err)
 		}

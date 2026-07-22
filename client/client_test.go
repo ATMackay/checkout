@@ -12,10 +12,10 @@ import (
 
 	"github.com/ATMackay/checkout/database"
 	srverrors "github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/ATMackay/checkout/model"
 	"github.com/ATMackay/checkout/services/auth"
-	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/ATMackay/checkout/services/orders"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"

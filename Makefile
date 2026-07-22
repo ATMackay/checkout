@@ -66,7 +66,7 @@ build/coverage:
 	@mkdir -p $(COVERAGE_BUILD_FOLDER)
 
 test: build/coverage
-	@go test -cover -coverprofile $(UNIT_COVERAGE_OUT) -v ./...
+	@go test -cover -coverprofile $(UNIT_COVERAGE_OUT) ./...
 
 test-integration:
 	@echo "🧪 Running integration tests..."

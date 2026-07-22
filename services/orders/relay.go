@@ -102,6 +102,7 @@ func (o *OutboxRelayer) run() {
 		case <-ticker.C:
 			slog.Debug("checking outbox", "tick", counter)
 			o.drain(context.Background())
+			counter++
 		}
 	}
 }

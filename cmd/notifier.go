@@ -15,20 +15,16 @@ import (
 	"github.com/ATMackay/checkout/messaging/kafka"
 	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/ATMackay/checkout/services/auth"
-	"github.com/ATMackay/checkout/services/orders"
+	"github.com/ATMackay/checkout/services/notifier"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// DefaultUserID is the placeholder identity the single shared password resolves
-// to under simple password auth, until per-user token auth (JWT) lands.
-const DefaultUserID = "default-user"
-
-// NewOrdersCmd runs the Orders API server
-func NewOrdersCmd() *cobra.Command {
+// NewNotifierCmd runs the notifier API server. TODO
+func NewNotifierCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "orders", // Orders service
-		Short: fmt.Sprintf("Run the %s. A microservice handling purchase orders and item inventory exposing a REST API for clients.", orders.ServiceName),
+		Use:   "notifier", // notifier service
+		Short: fmt.Sprintf("Run the %s. A microservice handling real-time notification for clients.", notifier.ServiceName),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Read configuration from Viper
 			port := viper.GetInt(FlagPort)
@@ -69,8 +65,8 @@ func NewOrdersCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			// Wire event producer
-			var cl messaging.Publisher = &noop.Client{} // Use noop client as default event producer
+			// Wire event consumer
+			var cl messaging.Consumer = &noop.Client{} // Use noop client as default event consumer
 			if eventBrokerHost != "" {
 				cl, err = kafka.NewClient([]string{eventBrokerHost})
 				if err != nil {
@@ -81,7 +77,7 @@ func NewOrdersCmd() *cobra.Command {
 				// Warn if the build contains uncommitted changes
 				slog.Warn("running a DIRTY build (uncommitted changes present) — do not run in production")
 			}
-			slog.Info(fmt.Sprintf("starting %s", orders.ServiceName),
+			slog.Info(fmt.Sprintf("starting %s", notifier.ServiceName),
 				"compilation_date", constants.BuildDate,
 				"commit", constants.GitCommit,
 				"version", constants.Version,
@@ -89,12 +85,8 @@ func NewOrdersCmd() *cobra.Command {
 			// Simple password auth (pre-JWT): the single configured password maps
 			// to a placeholder user ID until real users arrive with token auth.
 			authn := auth.NewPasswordAuthenticator(map[string]string{authPassword: DefaultUserID})
-			// Build the relay (outbox -> broker) over the publisher, then the
-			// domain service, then wrap both in the HTTP server that owns their
-			// lifecycle.
-			relayer := orders.NewOutboxRelayer(db, cl)
 
-			svc := orders.NewService(db, relayer, authn)
+			svc := notifier.NewService(authn, db, cl)
 			svr := httpserver.New(port, svc)
 
 			// Start listener + relay.

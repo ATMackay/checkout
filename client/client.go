@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/httpserver/middleware"
 	"github.com/ATMackay/checkout/model"
-	"github.com/ATMackay/checkout/services/httpserver/middleware"
 	"github.com/ATMackay/checkout/services/orders"
 )
 

@@ -8,9 +8,9 @@ import (
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/errors"
 	"github.com/ATMackay/checkout/event"
+	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/model"
 	"github.com/ATMackay/checkout/services/auth"
-	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 	"github.com/shopspring/decimal"
 )
@@ -50,7 +50,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 		}
 
 		// Fetch items from DB
-		dbItems, err := h.db.GetItemsBySKU(ctx, pReq.SKUs)
+		dbItems, err := h.store.GetItemsBySKU(ctx, pReq.SKUs)
 		if err != nil {
 			return nil, fmt.Errorf("could not get items: %w", err)
 		}
@@ -86,7 +86,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 		for _, it := range promotions.AddedItems {
 			sku := it.SKU
 			itemCount[sku]++
-			dbIt, err := h.db.GetItemBySKU(ctx, sku)
+			dbIt, err := h.store.GetItemBySKU(ctx, sku)
 			if err != nil {
 				return nil, fmt.Errorf("could not get item: %w", err)
 			}
@@ -114,7 +114,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 		}
 
 		// Execute purchase in a transaction to ensure atomicity
-		err = h.db.Transaction(ctx, func(tx database.Database) error {
+		err = h.store.Transaction(ctx, func(tx database.Database) error {
 			// Save updated dbItems with new inventory totals
 			if _, err := tx.UpsertItems(ctx, items); err != nil {
 				return fmt.Errorf("failed to update inventory: %w", err)
@@ -128,7 +128,7 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			// than publishing inline) is what makes the order and its event
 			// atomic — they commit together or not at all.
 			outboxItem, err := newOutboxItem(event.New(
-				TopicOrderCreated,
+				event.TopicOrderCreated,
 				order.Reference,
 				order, // re-use order model for event propagation
 			))

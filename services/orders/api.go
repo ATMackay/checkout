@@ -3,9 +3,11 @@ package orders
 import (
 	"net/http"
 
-	"github.com/ATMackay/checkout/services/httpserver/middleware"
+	"github.com/ATMackay/checkout/constants"
+	"github.com/ATMackay/checkout/httpserver"
+	api "github.com/ATMackay/checkout/httpserver/api"
+	"github.com/ATMackay/checkout/httpserver/middleware"
 	"github.com/julienschmidt/httprouter"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const ServiceName = "orders service"
@@ -26,89 +28,56 @@ var (
 	OrdersEndPnt = "/v1/orders"
 )
 
-// API is a collection of endpoints.
-type API struct {
-	endpoints []endPoint
-}
-
-// makeServerAPI returns a service http API with endpoints
-func makeServiceAPI(h *Service) *API {
-	return addEndpoints([]endPoint{
-		// Liveness/Readiness probing
+func (h *Service) RegisterHandlers() *httprouter.Router {
+	return api.AddEndpoints([]api.EndPoint{
+		// Liveness/Readiness probing — mechanism shared via httpserver; this
+		// service supplies only its own checks.
 		{
-			path:       StatusEndPnt,
-			methodType: http.MethodGet,
-			handler:    Status(),
+			Path:       StatusEndPnt,
+			MethodType: http.MethodGet,
+			Handler:    httpserver.StatusHandler(ServiceName, constants.Version),
 		},
 		{
-			path:       HealthEndPnt,
-			methodType: http.MethodGet,
-			handler:    h.Health(),
+			Path:       HealthEndPnt,
+			MethodType: http.MethodGet,
+			Handler: httpserver.HealthHandler(ServiceName, constants.Version,
+				httpserver.Check{Name: "database", Probe: h.store.Ping},
+				httpserver.Check{Name: "broker", Probe: h.relay.Ping},
+			),
 		},
 		//
 		// Checkout Application HTTP API
 		//
 		{
-			path:       ItemsEndPnt, // Add new items to the inventory item table
-			methodType: http.MethodGet,
-			handler:    h.ListItems(),
+			Path:       ItemsEndPnt, // Add new items to the inventory item table
+			MethodType: http.MethodGet,
+			Handler:    h.ListItems(),
 		},
 		{
-			path:       ItemPriceEndPnt + KeyParam, // Price for single item
-			methodType: http.MethodGet,
-			handler:    h.ItemPrice(),
+			Path:       ItemPriceEndPnt + KeyParam, // Price for single item
+			MethodType: http.MethodGet,
+			Handler:    h.ItemPrice(),
 		},
 		{
-			path:       ItemPriceEndPnt, // Alternative total price for items batch
-			methodType: http.MethodPost,
-			handler:    h.ItemsPrice(),
+			Path:       ItemPriceEndPnt, // Alternative total price for items batch
+			MethodType: http.MethodPost,
+			Handler:    h.ItemsPrice(),
 		},
 		// Authenticated requests
 		{
-			path:       ItemPurchaseEndPnt, // Execute purchase order (records the buyer)
-			methodType: http.MethodPost,
-			handler:    middleware.Auth(h.authn)(h.PurchaseItems()),
+			Path:       ItemPurchaseEndPnt, // Execute purchase order (records the buyer)
+			MethodType: http.MethodPost,
+			Handler:    middleware.Auth(h.authn)(h.PurchaseItems()),
 		},
 		{
-			path:       OrdersEndPnt, // List the authenticated customer's orders
-			methodType: http.MethodGet,
-			handler:    middleware.Auth(h.authn)(h.Orders()),
+			Path:       OrdersEndPnt, // List the authenticated customer's orders
+			MethodType: http.MethodGet,
+			Handler:    middleware.Auth(h.authn)(h.Orders()),
 		},
 		{
-			path:       ItemsEndPnt, // Add new items to the inventory item table
-			methodType: http.MethodPost,
-			handler:    middleware.Auth(h.authn)(h.AddItems()),
+			Path:       ItemsEndPnt, // Add items to the inventory item table
+			MethodType: http.MethodPost,
+			Handler:    middleware.Auth(h.authn)(h.AddItems()),
 		},
-	},
-	)
-}
-
-// endPoint represents an api element.
-type endPoint struct {
-	path       string
-	handler    httprouter.Handle
-	methodType string
-}
-
-func addEndpoints(endpoints []endPoint) *API {
-	r := &API{}
-	r.endpoints = append(r.endpoints, endpoints...)
-	return r
-}
-
-// routes configures a new httprouter.Router.
-func (a *API) routes() *httprouter.Router {
-
-	router := httprouter.New()
-
-	// Observability is applied by the httpserver around the whole router, so
-	// handlers register unwrapped here.
-	for _, e := range a.endpoints {
-		router.Handle(e.methodType, e.path, e.handler)
-	}
-
-	// Add metrics server
-	router.Handler(http.MethodGet, "/metrics", promhttp.Handler())
-
-	return router
+	}).Routes()
 }

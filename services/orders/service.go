@@ -11,13 +11,13 @@ import (
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/promotions"
 	"github.com/ATMackay/checkout/services/auth"
-	"github.com/julienschmidt/httprouter"
 )
 
-// Service executes business logic, handles requests, and provides access to the connected Database.
+// Service executes business logic covering order and inventory,
+// handles requests, and provides access to the connected Database.
 type Service struct {
 	// Service attributed must be non-empty
-	db               database.Database
+	store            store
 	promotionsEngine *promotions.PromotionsEngine
 	relay            Relayer
 	// authn resolves credentials for the service's protected routes. Injected
@@ -25,11 +25,30 @@ type Service struct {
 	authn auth.Authenticator
 }
 
+// store is the orders service's view of the database. Orders genuinely uses
+// nearly all of it — inventory, orders, outbox, and cross-store transactions —
+// so this composite is close to database.Database; that is honest, not a smell.
+// The narrow-interface payoff shows up in the notifier, which needs only the
+// outbox. Declaring it here (consumer-site) still documents the surface and
+// keeps orders decoupled from the concrete GormDB.
+type store interface {
+	database.OrderStore
+	database.InventoryStore
+	database.OutboxStore
+	database.HealthChecker
+	// Transaction runs fn atomically; the callback receives a database.Database
+	// so it can touch every store inside one transaction (see PurchaseItems).
+	Transaction(ctx context.Context, fn func(database.Database) error) error
+}
+
 // NewService constructs the orders domain service. The listening port is not
 // its concern — the httpserver that wraps it owns that.
-func NewService(db database.Database, relayer Relayer, authn auth.Authenticator) *Service {
+func NewService(db store,
+	relayer Relayer,
+	authn auth.Authenticator,
+) *Service {
 	srv := &Service{
-		db: db,
+		store: db,
 		promotionsEngine: promotions.NewPromotionsEngine(
 			promotions.NewMacBookProPromotion(db),
 			&promotions.GoogleTVPromotion{},
@@ -51,8 +70,4 @@ func (h *Service) Start(ctx context.Context) error {
 // Stop tears down the background processes started by Start.
 func (h *Service) Stop() error {
 	return h.relay.Stop()
-}
-
-func (h *Service) RegisterHandlers() *httprouter.Router {
-	return makeServiceAPI(h).routes()
 }

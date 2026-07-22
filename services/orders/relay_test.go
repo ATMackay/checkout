@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 // handler does.
 func testItem(t *testing.T, id int64, key string) *model.OutboxItem {
 	t.Helper()
-	item, err := newOutboxItem(event.New(TopicOrderCreated, key, map[string]string{"ref": key}))
+	item, err := newOutboxItem(event.New(event.TopicOrderCreated, key, map[string]string{"ref": key}))
 	if err != nil {
 		t.Fatalf("build outbox item: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestOutboxRelayer_DrainPublishesAndMarks(t *testing.T) {
 		t.Fatalf("published %d events, want 2", len(published))
 	}
 	// Routing metadata survives the store round-trip.
-	if published[0].Topic != TopicOrderCreated || published[0].Key != "ref-1" {
+	if published[0].Topic != event.TopicOrderCreated || published[0].Key != "ref-1" {
 		t.Errorf("event 0 = {topic:%s key:%s}, want {orders.created ref-1}", published[0].Topic, published[0].Key)
 	}
 }

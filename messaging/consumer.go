@@ -21,4 +21,7 @@ type Consumer interface {
 	// after the events have been processed — committing first turns a crash
 	// mid-processing into silent data loss.
 	Commit(ctx context.Context) error
+
+	// Ping reports broker reachability, for the consuming service's health probe.
+	Ping(ctx context.Context) error
 }

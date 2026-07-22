@@ -3,8 +3,6 @@
 package orders
 
 import (
-	"bytes"
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,90 +10,44 @@ import (
 	"github.com/ATMackay/checkout/database/mock"
 	"github.com/ATMackay/checkout/services/auth"
 	ordersmock "github.com/ATMackay/checkout/services/orders/mock"
-	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
 
-func Test_ServiceMethods(t *testing.T) {
-
+// Test_ServiceProbes exercises the orders service's status/health wiring through
+// its real router: /status is always 200, /health is 200 when its checks pass
+// and 503 when the database probe fails. The health mechanism itself is covered
+// in httpserver; this verifies orders supplies the right checks.
+func Test_ServiceProbes(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	db := mock.NewMockDatabase(ctrl)
-
-	// The relay stays healthy across every case so only the mocked db drives the
-	// health outcome; Health pings it on each probe.
 	relay := ordersmock.NewMockRelayer(ctrl)
-	relay.EXPECT().Ping(gomock.Any()).Return(nil).AnyTimes()
+	relay.EXPECT().Ping(gomock.Any()).Return(nil).AnyTimes() // broker stays healthy
 
-	// These cases hit Status/Health directly, not the auth-guarded routes, so an
-	// empty authenticator suffices.
 	s := NewService(db, relay, auth.NewPasswordAuthenticator(nil))
+	router := s.RegisterHandlers()
 
-	ctx := context.Background()
 	tests := []struct {
-		name                 string
-		preparefunc          func(*mock.MockDatabase)
-		method               string
-		path                 string
-		body                 []byte
-		paramFunc            func() httprouter.Params
-		handlerFunc          httprouter.Handle
-		expectedResponseCode int
+		name     string
+		prepare  func(*mock.MockDatabase)
+		path     string
+		wantCode int
 	}{
-		{
-			"status",
-			func(*mock.MockDatabase) {},
-			http.MethodGet,
-			StatusEndPnt,
-			nil,
-			func() httprouter.Params { return nil },
-			Status(),
-			http.StatusOK,
-		},
-		{
-			"health",
-			func(md *mock.MockDatabase) {
-				md.EXPECT().Ping(ctx).Return(nil)
-			},
-			http.MethodGet,
-			HealthEndPnt,
-			nil,
-			func() httprouter.Params { return nil },
-			s.Health(),
-			http.StatusOK,
-		},
-		{
-			"health-ping-error",
-			func(md *mock.MockDatabase) {
-				md.EXPECT().Ping(ctx).Return(assert.AnError)
-			},
-			http.MethodGet,
-			HealthEndPnt,
-			nil,
-			func() httprouter.Params { return nil },
-			s.Health(),
-			http.StatusServiceUnavailable,
-		},
-		// Add more tests here
+		{"status", func(*mock.MockDatabase) {}, StatusEndPnt, http.StatusOK},
+		{"health", func(md *mock.MockDatabase) {
+			md.EXPECT().Ping(gomock.Any()).Return(nil)
+		}, HealthEndPnt, http.StatusOK},
+		{"health-db-down", func(md *mock.MockDatabase) {
+			md.EXPECT().Ping(gomock.Any()).Return(assert.AnError)
+		}, HealthEndPnt, http.StatusServiceUnavailable},
 	}
-
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-
-			tc.preparefunc(db)
-
-			req, err := http.NewRequest(tc.method, tc.path, bytes.NewReader(tc.body))
-			if err != nil {
-				t.Fatal(err)
-			}
-
+			tc.prepare(db)
 			rr := httptest.NewRecorder()
-
-			tc.handlerFunc(rr, req, tc.paramFunc())
-
-			assert.Equal(t, tc.expectedResponseCode, rr.Code)
+			router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tc.path, nil))
+			assert.Equal(t, tc.wantCode, rr.Code)
 		})
 	}
 }

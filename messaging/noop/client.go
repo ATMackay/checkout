@@ -27,3 +27,13 @@ func (c *Client) Close() error {
 func (c *Client) Ping(context.Context) error {
 	return nil
 }
+
+var _ messaging.Consumer = (*Client)(nil)
+
+func (c *Client) Poll(ctx context.Context) ([]*event.Event, error) {
+	return nil, nil
+}
+
+func (c *Client) Commit(ctx context.Context) error {
+	return nil
+}

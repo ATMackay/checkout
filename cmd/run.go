@@ -11,9 +11,9 @@ func NewRunCmd() *cobra.Command {
 		RunE:  runHelp,
 	}
 
-	// Orders cmd
-	cmd.AddCommand(NewOrdersCmd())
-	// cmd.AddCommand(NewNotifierCmd) - TODO
+	// Add microservice commands
+	cmd.AddCommand(NewOrdersCmd())   // Order service
+	cmd.AddCommand(NewNotifierCmd()) // Notifier service
 
 	return cmd
 }

@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/services/auth"
-	"github.com/ATMackay/checkout/services/httpserver"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -29,7 +29,7 @@ func (h *Service) Orders() httprouter.Handle {
 		if !ok {
 			return nil, fmt.Errorf("%w", errors.ErrInvalidInput)
 		}
-		os, err := h.db.GetOrders(ctx, userID)
+		os, err := h.store.GetOrders(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("could not get orders from db: %w", err)
 		}
