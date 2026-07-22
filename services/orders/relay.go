@@ -3,13 +3,13 @@ package orders
 import (
 	"context"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/ATMackay/checkout/database"
 	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/messaging"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/worker"
 )
 
 //go:generate mockgen -destination mock/relay.go -package mock github.com/ATMackay/checkout/services/orders Relayer
@@ -40,9 +40,7 @@ type OutboxRelayer struct {
 	pollInterval time.Duration
 	batchSize    int
 
-	quit     chan struct{}
-	wg       sync.WaitGroup
-	stopOnce sync.Once
+	runner worker.Runner
 }
 
 // Option configures an OutboxRelayer.
@@ -65,7 +63,6 @@ func NewOutboxRelayer(store database.OutboxStore, publisher messaging.Publisher,
 		publisher:    publisher,
 		pollInterval: defaultPollInterval,
 		batchSize:    defaultBatchSize,
-		quit:         make(chan struct{}),
 	}
 	for _, opt := range opts {
 		opt(o)
@@ -73,31 +70,29 @@ func NewOutboxRelayer(store database.OutboxStore, publisher messaging.Publisher,
 	return o
 }
 
-// Start launches the poll loop. ctx bounds a fail-fast connectivity check only;
-// the loop itself is torn down via Stop, not ctx, so no context is retained.
-func (o *OutboxRelayer) Start(ctx context.Context) error {
-	if err := o.publisher.Ping(ctx); err != nil {
+// Start launches the poll loop. startCtx bounds a fail-fast connectivity check
+// only; the loop is torn down via Stop (worker.Runner cancellation).
+func (o *OutboxRelayer) Start(startCtx context.Context) error {
+	if err := o.publisher.Ping(startCtx); err != nil {
 		return err
 	}
-	o.wg.Add(1)
-	go o.run()
+	o.runner.Start(o.run)
 	slog.Info("outbox relayer started", "poll_interval", o.pollInterval, "batch_size", o.batchSize)
 	return nil
 }
 
-// run scans the outbox on every tick until quit is closed. It owns no request
-// context, so publishes use context.Background() (an honest "no upstream
-// deadline" for a background worker).
-func (o *OutboxRelayer) run() {
-	defer o.wg.Done()
-
+// run scans the outbox on every tick until its context is cancelled by Stop.
+// Each drain owns no request deadline, so it uses context.Background() (an honest
+// "no upstream deadline" for a background worker); shutdown just stops scheduling
+// new drains.
+func (o *OutboxRelayer) run(ctx context.Context) {
 	ticker := time.NewTicker(o.pollInterval)
 	defer ticker.Stop()
 
 	var counter int64
 	for {
 		select {
-		case <-o.quit:
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			slog.Debug("checking outbox", "tick", counter)
@@ -158,13 +153,10 @@ func (o *OutboxRelayer) Ping(ctx context.Context) error {
 	return o.publisher.Ping(ctx)
 }
 
-// Stop terminates the poll loop and closes the publisher. It is idempotent and
-// safe to call from multiple goroutines: close broadcasts to run(), wg.Wait
-// blocks until the loop has returned. It never sends on quit, so it cannot panic
-// on a second call.
+// Stop terminates the poll loop and closes the publisher. The Runner's Stop is
+// idempotent and blocks until the loop goroutine has returned.
 func (o *OutboxRelayer) Stop() error {
-	o.stopOnce.Do(func() { close(o.quit) })
-	o.wg.Wait()
+	o.runner.Stop()
 	slog.Debug("stopped relayer")
 	return o.publisher.Close()
 }
