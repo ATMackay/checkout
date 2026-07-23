@@ -74,6 +74,10 @@ func NewClient(brokerAddresses []string, opts ...Option) (*Client, error) {
 			kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()),
 			kgo.DisableAutoCommit(),
 		)
+	} else {
+		// Producer: let the broker create the topic on first publish so a fresh
+		// deployment needs no manual topic-create step.
+		kopts = append(kopts, kgo.AllowAutoTopicCreation())
 	}
 
 	kcl, err := kgo.NewClient(kopts...)

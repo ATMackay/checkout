@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/ATMackay/checkout/errors"
-	"github.com/ATMackay/checkout/httpserver/middleware"
+	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/auth"
+	"github.com/ATMackay/checkout/services/notifier"
 	"github.com/ATMackay/checkout/services/orders"
 )
 
@@ -48,7 +50,7 @@ func New(baseURL string, opts ...Option) (*Client, error) {
 
 func (c *Client) AddAuthorizationHeader(psswd string) {
 	c.mu.Lock()
-	c.hdr.Set(middleware.XAuthHeaderKey, psswd)
+	c.hdr.Set(auth.XAuthHeaderKey, psswd)
 	c.mu.Unlock()
 }
 
@@ -130,9 +132,13 @@ func (c *Client) executeJSONRequest(ctx context.Context, method, path string, in
 	return nil
 }
 
+//
+// Status/Health Probes
+//
+
 func (client *Client) Status(ctx context.Context) (*model.StatusResponse, error) {
 	var status model.StatusResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, orders.StatusEndPnt, nil, &status); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, httpserver.StatusEndPnt, nil, &status); err != nil {
 		return nil, err
 	}
 	return &status, nil
@@ -140,11 +146,15 @@ func (client *Client) Status(ctx context.Context) (*model.StatusResponse, error)
 
 func (client *Client) Health(ctx context.Context) (*model.HealthResponse, error) {
 	var health model.HealthResponse
-	if err := client.executeJSONRequest(ctx, http.MethodGet, orders.HealthEndPnt, nil, &health); err != nil {
+	if err := client.executeJSONRequest(ctx, http.MethodGet, httpserver.HealthEndPnt, nil, &health); err != nil {
 		return nil, err
 	}
 	return &health, nil
 }
+
+//
+// Orders service HTTP API
+//
 
 func (client *Client) AddItems(ctx context.Context, addItemReq *model.AddItemsRequest) error {
 	return client.executeJSONRequest(ctx, http.MethodPost, orders.ItemsEndPnt, addItemReq, nil)
@@ -188,6 +198,18 @@ func (client *Client) GetOrders(ctx context.Context) (*model.Orders, error) {
 		return nil, err
 	}
 	return &ods, nil
+}
+
+//
+// Notifications service HTTP API
+//
+
+func (client *Client) ListNotifications(ctx context.Context) (*model.Notification, error) {
+	var notifications model.Notification
+	if err := client.executeJSONRequest(ctx, http.MethodGet, notifier.NotificationsEndPnt, nil, &notifications); err != nil {
+		return nil, err
+	}
+	return &notifications, nil
 }
 
 type mdHeaderKey struct{}

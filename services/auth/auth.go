@@ -10,13 +10,18 @@ import (
 	"errors"
 )
 
-//go:generate mockgen -destination mock/auth.go -package mock github.com/ATMackay/checkout/services/auth Authenticator
+// XAuthHeaderKey is the request header carrying the shared password in the
+// pre-JWT auth mode. The header is an HTTP detail owned here, not by the
+// transport-neutral auth package.
+const XAuthHeaderKey = "X-Auth-Password"
 
 // ErrUnauthenticated is returned when a credential does not resolve to a user.
 var ErrUnauthenticated = errors.New("unauthenticated")
 
 // Authenticator resolves an opaque credential (a shared password today, a JWT
 // later) to a user identifier.
+//
+//go:generate mockgen -destination mock/auth.go -package mock github.com/ATMackay/checkout/services/auth Authenticator
 type Authenticator interface {
 	Authenticate(credential string) (userID string, err error)
 }

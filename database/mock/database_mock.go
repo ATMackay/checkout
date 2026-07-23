@@ -189,6 +189,20 @@ func (mr *MockDatabaseMockRecorder) SetDeliveredAt(ctx, id, t any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDeliveredAt", reflect.TypeOf((*MockDatabase)(nil).SetDeliveredAt), ctx, id, t)
 }
 
+// SetDeliveredByEventID mocks base method.
+func (m *MockDatabase) SetDeliveredByEventID(ctx context.Context, eventID string, t time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDeliveredByEventID", ctx, eventID, t)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDeliveredByEventID indicates an expected call of SetDeliveredByEventID.
+func (mr *MockDatabaseMockRecorder) SetDeliveredByEventID(ctx, eventID, t any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDeliveredByEventID", reflect.TypeOf((*MockDatabase)(nil).SetDeliveredByEventID), ctx, eventID, t)
+}
+
 // SetPublishedAt mocks base method.
 func (m *MockDatabase) SetPublishedAt(ctx context.Context, id int64, t time.Time) error {
 	m.ctrl.T.Helper()
@@ -487,6 +501,20 @@ func (m *MockOutboxStore) SetDeliveredAt(ctx context.Context, id int64, t time.T
 func (mr *MockOutboxStoreMockRecorder) SetDeliveredAt(ctx, id, t any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDeliveredAt", reflect.TypeOf((*MockOutboxStore)(nil).SetDeliveredAt), ctx, id, t)
+}
+
+// SetDeliveredByEventID mocks base method.
+func (m *MockOutboxStore) SetDeliveredByEventID(ctx context.Context, eventID string, t time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDeliveredByEventID", ctx, eventID, t)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDeliveredByEventID indicates an expected call of SetDeliveredByEventID.
+func (mr *MockOutboxStoreMockRecorder) SetDeliveredByEventID(ctx, eventID, t any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDeliveredByEventID", reflect.TypeOf((*MockOutboxStore)(nil).SetDeliveredByEventID), ctx, eventID, t)
 }
 
 // SetPublishedAt mocks base method.

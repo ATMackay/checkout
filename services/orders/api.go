@@ -16,9 +16,6 @@ const ServiceName = "orders service"
 const TopicOrderCreated = "orders.created"
 
 var (
-	StatusEndPnt = "/status"
-	HealthEndPnt = "/health"
-
 	ItemsEndPnt        = "/v1/inventory/items"
 	ItemPriceEndPnt    = "/v1/inventory/item/price"
 	ItemsPriceEndPnt   = "/v1/inventory/items/price"
@@ -33,12 +30,12 @@ func (h *Service) RegisterHandlers() *httprouter.Router {
 		// Liveness/Readiness probing — mechanism shared via httpserver; this
 		// service supplies only its own checks.
 		{
-			Path:       StatusEndPnt,
+			Path:       httpserver.StatusEndPnt,
 			MethodType: http.MethodGet,
 			Handler:    httpserver.StatusHandler(ServiceName, constants.Version),
 		},
 		{
-			Path:       HealthEndPnt,
+			Path:       httpserver.HealthEndPnt,
 			MethodType: http.MethodGet,
 			Handler: httpserver.HealthHandler(ServiceName, constants.Version,
 				httpserver.Check{Name: "database", Probe: h.store.Ping},

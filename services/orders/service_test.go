@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ATMackay/checkout/database/mock"
+	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/services/auth"
 	ordersmock "github.com/ATMackay/checkout/services/orders/mock"
 	"github.com/stretchr/testify/assert"
@@ -34,13 +35,13 @@ func Test_ServiceProbes(t *testing.T) {
 		path     string
 		wantCode int
 	}{
-		{"status", func(*mock.MockDatabase) {}, StatusEndPnt, http.StatusOK},
+		{"status", func(*mock.MockDatabase) {}, httpserver.StatusEndPnt, http.StatusOK},
 		{"health", func(md *mock.MockDatabase) {
 			md.EXPECT().Ping(gomock.Any()).Return(nil)
-		}, HealthEndPnt, http.StatusOK},
+		}, httpserver.HealthEndPnt, http.StatusOK},
 		{"health-db-down", func(md *mock.MockDatabase) {
 			md.EXPECT().Ping(gomock.Any()).Return(assert.AnError)
-		}, HealthEndPnt, http.StatusServiceUnavailable},
+		}, httpserver.HealthEndPnt, http.StatusServiceUnavailable},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

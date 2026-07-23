@@ -85,6 +85,11 @@ docker-run-postgres:
 docker-run-sqlite:
 	@docker compose -f docker-compose.yml --profile sqlite up --force-recreate
 
+# Run the full event system: postgres + kafka + orders + notifier.
+# Requires the checkout image (run `make docker` first).
+docker-run-events:
+	@docker compose -f docker-compose.yml --profile events up --force-recreate
+
 openapi-clean:
 	rm -rf ./docs/openapi/*
 	@echo "Deleted docs/openapi/openapi.json"
@@ -108,4 +113,4 @@ mocks:
 	@go install go.uber.org/mock/mockgen@latest
 	@go generate ./...
 
-.PHONY: build build-static run docker test test-coverage docker-run-db swag-install openapi api-docs mocks
+.PHONY: build build-static run docker test test-coverage docker-run-postgres docker-run-sqlite docker-run-events swag-install openapi api-docs mocks

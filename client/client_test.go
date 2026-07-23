@@ -124,7 +124,7 @@ func TestClient(t *testing.T) {
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		// incorrect verb
-		if err := cl.executeJSONRequest(ctx, http.MethodPut, orders.HealthEndPnt, nil, nil); !errors.Is(err, srverrors.ErrMethodNotAllowed) {
+		if err := cl.executeJSONRequest(ctx, http.MethodPut, httpserver.HealthEndPnt, nil, nil); !errors.Is(err, srverrors.ErrMethodNotAllowed) {
 			t.Fatalf("expected error got %v", err)
 		}
 	})

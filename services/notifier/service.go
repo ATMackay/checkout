@@ -3,8 +3,10 @@ package notifier
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/ATMackay/checkout/database"
+	"github.com/ATMackay/checkout/event"
 	"github.com/ATMackay/checkout/messaging"
 	"github.com/ATMackay/checkout/services/auth"
 	"github.com/ATMackay/checkout/services/worker"
@@ -16,10 +18,10 @@ const ServiceName = "notifier service"
 // replicas share it, so the broker splits partitions among them.
 const ConsumerGroup = "notifier"
 
-// store is the notifier's view of the database: only the outbox (to mark events
-// delivered) and a health probe. This narrow interface is where splitting the
-// stores actually pays off — unlike orders, the notifier touches almost none of
-// the DB, and the single GormDB satisfies this face of it.
+// store is the notifier's view of the database: only the outbox (to read
+// notifications and mark them delivered) and a health probe. This narrow
+// interface is where splitting the stores pays off — unlike orders, the notifier
+// touches almost none of the DB, and the single GormDB satisfies this face of it.
 type store interface {
 	database.OutboxStore
 	database.HealthChecker
@@ -33,6 +35,7 @@ type Service struct {
 	authn    auth.Authenticator
 	store    store
 	consumer messaging.Consumer
+	sink     Sink
 	runner   worker.Runner
 }
 
@@ -41,8 +44,9 @@ type Service struct {
 func NewService(authn auth.Authenticator,
 	store store,
 	consumer messaging.Consumer,
+	sink Sink,
 ) *Service {
-	return &Service{authn: authn, store: store, consumer: consumer}
+	return &Service{authn: authn, store: store, consumer: consumer, sink: sink}
 }
 
 // Start pings the broker, then launches the consume loop. Teardown is via
@@ -69,16 +73,32 @@ func (h *Service) consume(ctx context.Context) {
 			continue
 		}
 		for _, ev := range events {
-			// TODO — the notifier's domain logic lives here: dedup on ev.ID,
-			// dispatch the notification, then mark the outbox row delivered via
-			// h.store.SetDeliveredAt. For now we only observe the stream.
-			slog.Debug("notifier received event", "id", ev.ID, "topic", ev.Topic, "key", ev.Key)
+			h.dispatch(ctx, ev)
 		}
 		// Commit only after processing — at-least-once: a crash before commit
-		// redelivers, which the (future) dedup step absorbs.
+		// redelivers, which marking delivery idempotent (a repeat is a no-op)
+		// tolerates.
 		if err := h.consumer.Commit(ctx); err != nil {
 			slog.Error("notifier commit failed", "error", err)
 		}
+	}
+}
+
+// dispatch renders one event, writes it to the sink, then marks the outbox row
+// delivered. A failure at any step is logged and the row stays undelivered so a
+// later redelivery retries it.
+func (h *Service) dispatch(ctx context.Context, ev *event.Event) {
+	n, err := notificationFromEvent(ev, true)
+	if err != nil {
+		slog.Error("notifier render failed", "event_id", ev.ID, "error", err)
+		return
+	}
+	if err := h.sink.Write(ctx, n); err != nil {
+		slog.Error("notifier sink write failed", "event_id", ev.ID, "error", err)
+		return
+	}
+	if err := h.store.SetDeliveredByEventID(ctx, ev.ID, time.Now().UTC()); err != nil {
+		slog.Error("notifier mark-delivered failed", "event_id", ev.ID, "error", err)
 	}
 }
 

@@ -51,4 +51,9 @@ const (
 	// events to. Empty disables publishing: the service falls back to the no-op
 	// publisher, so events are opt-in rather than required to boot.
 	FlagEventBroker = "event-broker"
+
+	// FlagNotificationFile is an optional path the notifier also writes
+	// notifications to (as JSON lines), in addition to the terminal. Notifier
+	// only.
+	FlagNotificationFile = "notification-file"
 )

@@ -201,6 +201,23 @@ func (g *GormDB) SetDeliveredAt(ctx context.Context, id int64, t time.Time) erro
 	return g.setOutboxTimestamp(ctx, id, "delivered_at", t)
 }
 
+// SetDeliveredByEventID marks the outbox row with the given event ID delivered.
+// The notifier holds the event ID (not the row's serial ID), so it marks
+// delivery by that. Strict: matching no row is an error.
+func (g *GormDB) SetDeliveredByEventID(ctx context.Context, eventID string, t time.Time) error {
+	res := g.db.WithContext(ctx).
+		Model(&model.OutboxItem{}).
+		Where("event_id = ?", eventID).
+		Update("delivered_at", t)
+	if res.Error != nil {
+		return fmt.Errorf("set delivered_at for event %s: %w", eventID, res.Error)
+	}
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("set delivered_at for event %s: %w", eventID, ErrOutboxItemNotFound)
+	}
+	return nil
+}
+
 // setOutboxTimestamp writes t to a single item's timestamp column. column is an
 // internal literal, never caller input, so it is not an injection surface. The
 // update is strict: matching no row is an error, so a bad ID cannot pass

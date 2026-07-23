@@ -33,9 +33,7 @@ COPY . .
 # Declared after the dependency layers so a new commit doesn't re-download modules.
 ARG VERSION
 
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    git config --global --add safe.directory /src && \
+RUN git config --global --add safe.directory /src && \
     make build-static VERSION="${VERSION}"
 
 # Fail the build if the binary is not actually static. A dynamically linked

@@ -10,6 +10,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+var (
+	StatusEndPnt = "/status"
+	HealthEndPnt = "/health"
+)
+
 // Check is a named readiness probe for one dependency. Services declare a Check
 // per backend they depend on; HealthHandler runs them all.
 type Check struct {

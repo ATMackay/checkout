@@ -10,6 +10,7 @@ import (
 
 	dbmock "github.com/ATMackay/checkout/database/mock"
 	"github.com/ATMackay/checkout/event"
+	"github.com/ATMackay/checkout/httpserver"
 	msgmock "github.com/ATMackay/checkout/messaging/mock"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
@@ -34,7 +35,7 @@ func TestService_StartStop(t *testing.T) {
 		return nil, ctx.Err()
 	}).AnyTimes()
 
-	s := NewService(nil, store, consumer)
+	s := NewService(nil, store, consumer, terminalSink{})
 	if err := s.Start(context.Background()); err != nil {
 		t.Fatalf("start: %v", err)
 	}
@@ -54,7 +55,7 @@ func TestService_StartFailsWhenBrokerDown(t *testing.T) {
 	consumer := msgmock.NewMockConsumer(ctrl)
 	consumer.EXPECT().Ping(gomock.Any()).Return(assert.AnError)
 
-	s := NewService(nil, store, consumer)
+	s := NewService(nil, store, consumer, terminalSink{})
 	if err := s.Start(context.Background()); err == nil {
 		t.Fatal("expected Start to fail when broker Ping fails")
 	}
@@ -70,9 +71,9 @@ func TestService_HealthReflectsConsumer(t *testing.T) {
 	store.EXPECT().Ping(gomock.Any()).Return(nil)
 	consumer.EXPECT().Ping(gomock.Any()).Return(assert.AnError)
 
-	router := NewService(nil, store, consumer).RegisterHandlers()
+	router := NewService(nil, store, consumer, terminalSink{}).RegisterHandlers()
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, HealthEndPnt, nil))
+	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, httpserver.HealthEndPnt, nil))
 
 	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 }

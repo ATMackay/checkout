@@ -38,6 +38,11 @@ type OutboxStore interface {
 	// SetDeliveredAt strictly marks one item delivered, with the same
 	// not-found semantics as SetPublishedAt.
 	SetDeliveredAt(ctx context.Context, id int64, t time.Time) error
+
+	// SetDeliveredByEventID marks the item with the given event ID delivered.
+	// The notifier consumes events keyed by event ID, so it marks delivery by
+	// that rather than the row's serial ID.
+	SetDeliveredByEventID(ctx context.Context, eventID string, t time.Time) error
 }
 
 // OutboxQuery filters an outbox read. The zero value selects everything.

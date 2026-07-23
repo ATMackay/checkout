@@ -14,11 +14,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// XAuthHeaderKey is the request header carrying the shared password in the
-// pre-JWT auth mode. The header is an HTTP detail owned here, not by the
-// transport-neutral auth package.
-const XAuthHeaderKey = "X-Auth-Password"
-
 // Observer wraps an http.Handler with request logging and Prometheus metrics.
 // The httpserver applies it once around the whole router, so every service —
 // orders today, the notifier next — gets identical observability for free rather
@@ -60,7 +55,7 @@ func Observer(next http.Handler) http.Handler {
 func Auth(authn auth.Authenticator) func(httprouter.Handle) httprouter.Handle {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, req *http.Request, p httprouter.Params) {
-			userID, err := authn.Authenticate(req.Header.Get(XAuthHeaderKey))
+			userID, err := authn.Authenticate(req.Header.Get(auth.XAuthHeaderKey))
 			if err != nil {
 				writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 				return
