@@ -11,16 +11,12 @@ import (
 
 	"github.com/ATMackay/checkout/integration/stack"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/shopspring/decimal"
 )
 
-type notificationView struct {
-	Reference string `json:"reference"`
-	Delivered bool   `json:"delivered"`
-}
-
-// getNotifications reads the notifier's /v1/notifications endpoint.
-func getNotifications(t *testing.T, ctx context.Context, baseURL string, undeliveredOnly bool) []notificationView {
+// getNotifications reads the notifier's (auth-guarded) /v1/notifications endpoint.
+func getNotifications(t *testing.T, ctx context.Context, baseURL, password string, undeliveredOnly bool) []model.Notification {
 	t.Helper()
 	url := baseURL + "/v1/notifications"
 	if undeliveredOnly {
@@ -30,12 +26,16 @@ func getNotifications(t *testing.T, ctx context.Context, baseURL string, undeliv
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Set(auth.XAuthHeaderKey, password)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("get notifications: %v", err)
 	}
 	defer resp.Body.Close()
-	var out []notificationView
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("get notifications: unexpected status %d", resp.StatusCode)
+	}
+	var out []model.Notification
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		t.Fatalf("decode notifications: %v", err)
 	}
@@ -70,7 +70,7 @@ func Test_Notification(t *testing.T) {
 	deadline := time.Now().Add(60 * time.Second)
 	for {
 		delivered := false
-		for _, n := range getNotifications(t, ctx, notifierURL, false) {
+		for _, n := range getNotifications(t, ctx, notifierURL, stack.TestAuthPassword, false) {
 			if n.Reference == resp.OrderReference && n.Delivered {
 				delivered = true
 			}
@@ -85,7 +85,7 @@ func Test_Notification(t *testing.T) {
 	}
 
 	// Once delivered, the undelivered-only view must not contain it.
-	for _, n := range getNotifications(t, ctx, notifierURL, true) {
+	for _, n := range getNotifications(t, ctx, notifierURL, stack.TestAuthPassword, true) {
 		if n.Reference == resp.OrderReference {
 			t.Fatalf("order %s still listed as undelivered", resp.OrderReference)
 		}
