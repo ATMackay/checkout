@@ -15,9 +15,12 @@ import (
 	"github.com/ATMackay/checkout/event"
 	msgmock "github.com/ATMackay/checkout/messaging/mock"
 	"github.com/ATMackay/checkout/model"
+	"github.com/ATMackay/checkout/services/auth"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
+
+const testPassword = "pw"
 
 type recordingSink struct{ got []*model.Notification }
 
@@ -66,12 +69,15 @@ func Test_NotificationsEndpoint(t *testing.T) {
 		return it
 	}
 
-	router := NewService(nil, store, msgmock.NewMockConsumer(ctrl), terminalSink{}).RegisterHandlers()
+	authn := auth.NewPasswordAuthenticator(map[string]string{testPassword: "user"})
+	router := NewService(authn, store, msgmock.NewMockConsumer(ctrl), terminalSink{}).RegisterHandlers()
 
 	get := func(t *testing.T, path string) []*model.Notification {
 		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set(auth.XAuthHeaderKey, testPassword)
 		rr := httptest.NewRecorder()
-		router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, path, nil))
+		router.ServeHTTP(rr, req)
 		require.Equal(t, http.StatusOK, rr.Code)
 		var got []*model.Notification
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
@@ -90,5 +96,11 @@ func Test_NotificationsEndpoint(t *testing.T) {
 		got := get(t, NotificationsEndPnt+"?undelivered=true")
 		require.Len(t, got, 1)
 		require.False(t, got[0].Delivered)
+	})
+
+	t.Run("unauthenticated", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, NotificationsEndPnt, nil))
+		require.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }
