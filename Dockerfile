@@ -1,4 +1,9 @@
-# syntax=docker/dockerfile:1.7
+# This Dockerfile must stay buildable by the CLASSIC docker builder, not just
+# BuildKit. testcontainers-go has no BuildKit support — integration/stack falls
+# back to building this file through the daemon's classic build endpoint when no
+# local checkout image exists, and BuildKit-only syntax fails there with
+# "the --mount option requires BuildKit". So: no RUN --mount cache mounts, and
+# no syntax directive. Layer ordering below does the caching work instead.
 
 # Build stage.
 #
@@ -19,8 +24,7 @@ WORKDIR /src
 # Dependencies are copied and downloaded on their own so that editing source
 # does not invalidate the module layer.
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
+RUN go mod download
 
 COPY . .
 
@@ -29,9 +33,7 @@ COPY . .
 # Declared after the dependency layers so a new commit doesn't re-download modules.
 ARG VERSION
 
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    git config --global --add safe.directory /src && \
+RUN git config --global --add safe.directory /src && \
     make build-static VERSION="${VERSION}"
 
 # Fail the build if the binary is not actually static. A dynamically linked
@@ -61,7 +63,7 @@ USER nonroot:nonroot
 WORKDIR /
 
 # Expose the default application port
-EXPOSE 8080
+EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=30 \
   CMD ["/usr/local/bin/checkout", "health"]

@@ -10,11 +10,12 @@ import (
 var skuRegex = regexp.MustCompile(`^[a-zA-Z0-9]{6}$`)
 
 type Item struct {
-	ID                int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
-	SKU               string          `json:"sku" gorm:"column:sku;type:string;unique"`
-	Name              string          `json:"name" gorm:"column:name;type:string;unique"`
-	Price             decimal.Decimal `json:"price" gorm:"column:price;type:numeric(12,2)"`
-	InventoryQuantity int             `json:"inventory_quantity" gorm:"column:inventory_quantity;type:integer"`
+	ID    int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
+	SKU   string          `json:"sku" gorm:"column:sku;type:string;unique"`
+	Name  string          `json:"name" gorm:"column:name;type:string;unique"`
+	Price decimal.Decimal `json:"price" gorm:"column:price;type:numeric(12,2)"`
+	// InventoryQuantity adds a non-zero check at the DB level
+	InventoryQuantity int `json:"inventory_quantity" gorm:"column:inventory_quantity;type:integer;check:chk_inventory_non_negative,inventory_quantity >= 0"`
 }
 
 func (i *Item) TableName() string {

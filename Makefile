@@ -58,18 +58,19 @@ build-static:
 install: build
 	mv $(BIN) $(GOBIN)
 
-run: build
-	@./$(BUILD_FOLDER)/checkout run --memory-db
+# Run orders service with DEBUG logging
+run-orders: build
+	@./$(BUILD_FOLDER)/checkout run orders --memory-db --log-level debug
 
 build/coverage:
 	@mkdir -p $(COVERAGE_BUILD_FOLDER)
 
 test: build/coverage
-	@go test -cover -coverprofile $(UNIT_COVERAGE_OUT) -v ./...
+	@go test -cover -coverprofile $(UNIT_COVERAGE_OUT) ./...
 
 test-integration:
 	@echo "🧪 Running integration tests..."
-	@go test -v -tags=integration ./integration/... -count=1 -timeout=15m
+	@go test -cover -tags=integration ./integration ./messaging/kafka -count=1 -timeout=15m
 
 test-coverage: test
 	@go tool cover -html=$(UNIT_COVERAGE_OUT)
@@ -84,6 +85,14 @@ docker-run-postgres:
 docker-run-sqlite:
 	@docker compose -f docker-compose.yml --profile sqlite up --force-recreate
 
+# Run the full event system: postgres + kafka + orders + notifier.
+# Postgres publishes on host 5433 (not 5432) so it does not collide with a local
+# Postgres — the services reach it over the compose network regardless. Override
+# PG_HOST_PORT / ORDERS_PORT / NOTIFIER_PORT if those host ports are taken.
+# Requires the checkout image (run `make docker` first).
+docker-run-events:
+	@PG_HOST_PORT=$${PG_HOST_PORT:-5433} docker compose -f docker-compose.yml --profile events up --force-recreate
+
 openapi-clean:
 	rm -rf ./docs/openapi/*
 	@echo "Deleted docs/openapi/openapi.json"
@@ -96,15 +105,15 @@ openapi: swag-install openapi-clean
 	@swag init \
 		-g main.go \
 		--parseDependency --parseInternal \
-		-o ./docs/openapi/openapi.json \
+		-o ./docs/openapi/ \
 		-ot json
-	@echo "✅ Wrote OpenAPI to docs/openapi/openapi.json"
+	@echo "✅ Wrote OpenAPI to docs/openapi/swagger.json"
 
 api-docs: openapi
 	@echo "✅ All docs generated."
 
 mocks:
 	@go install go.uber.org/mock/mockgen@latest
-	@mockgen -source database/database.go -destination ./database/mock/database_mock.go -package mock database
+	@go generate ./...
 
-.PHONY: build build-static run docker test test-coverage docker-run-db swag-install openapi api-docs mocks
+.PHONY: build build-static run docker test test-coverage docker-run-postgres docker-run-sqlite docker-run-events swag-install openapi api-docs mocks

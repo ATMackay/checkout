@@ -18,7 +18,7 @@ type MacBookProPromotion struct {
 	db database.InventoryStore
 }
 
-func NewMacBookProPromotion(db database.Database) *MacBookProPromotion {
+func NewMacBookProPromotion(db database.InventoryStore) *MacBookProPromotion {
 	return &MacBookProPromotion{db: db}
 }
 

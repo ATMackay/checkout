@@ -1,3 +1,5 @@
+//go:build !integration
+
 package client
 
 import (
@@ -10,8 +12,11 @@ import (
 
 	"github.com/ATMackay/checkout/database"
 	srverrors "github.com/ATMackay/checkout/errors"
+	"github.com/ATMackay/checkout/httpserver"
+	"github.com/ATMackay/checkout/messaging/noop"
 	"github.com/ATMackay/checkout/model"
-	"github.com/ATMackay/checkout/service"
+	"github.com/ATMackay/checkout/services/auth"
+	"github.com/ATMackay/checkout/services/orders"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -23,11 +28,17 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := service.NewService(8001, db, "1234")
-	s.Start()
+	relayer := orders.NewOutboxRelayer(db, &noop.Client{})
+	authn := auth.NewPasswordAuthenticator(map[string]string{"1234": "test-user"})
+	svc := orders.NewService(db, relayer, authn)
+	svr := httpserver.New(8001, svc)
+	if err := svr.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svr.Stop() })
 
 	time.Sleep(10 * time.Millisecond)
-	baseUrl := fmt.Sprintf("http://0.0.0.0%v", s.Addr())
+	baseUrl := fmt.Sprintf("http://0.0.0.0%v", svr.Port())
 
 	cl, err := New(baseUrl)
 	if err != nil {
@@ -113,7 +124,7 @@ func TestClient(t *testing.T) {
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		// incorrect verb
-		if err := cl.executeJSONRequest(ctx, http.MethodPut, service.HealthEndPnt, nil, nil); !errors.Is(err, srverrors.ErrMethodNotAllowed) {
+		if err := cl.executeJSONRequest(ctx, http.MethodPut, httpserver.HealthEndPnt, nil, nil); !errors.Is(err, srverrors.ErrMethodNotAllowed) {
 			t.Fatalf("expected error got %v", err)
 		}
 	})

@@ -19,10 +19,10 @@ services:
       interval: 10s
       timeout: 3s
       retries: 30
-    profiles: ["postgres"]
+    profiles: ["postgres", "events"]
 
   # ---------- Checkout app (Postgres) ----------
-  checkout:
+  checkout-orders-pg:
     # (A) Or build locally from the Dockerfile
     #build:
     #  context: .
@@ -40,7 +40,7 @@ services:
       database:
         condition: service_healthy
     restart: unless-stopped
-    command: ["run"]
+    command: ["run", "orders"]
     environment:
       CHECKOUT_DB_HOST: database                            # reference postgres host
       CHECKOUT_DB_PORT: ${PG_HOST_PORT:-5432}               # DB port
@@ -50,7 +50,7 @@ services:
       CHECKOUT_LOG_FORMAT: text                             # format logs (alternative: 'json')
       CHECKOUT_PASSWORD: ${PASSWORD:-1234}                  # change password if required
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8000}:8000"
     healthcheck:
       # No shell or wget in the distroless image: the binary probes itself.
       test: ["CMD", "/usr/local/bin/checkout", "health"]
@@ -60,31 +60,23 @@ services:
     profiles: ["postgres"]
 
   # ---------- Checkout app (SQLite) ----------
-  checkout-sqlite:
-    # (A) Or build locally from the Dockerfile
-    #build:
-    #  context: .
-    #  dockerfile: Dockerfile
-    #  args:
-    #    SERVICE: checkout
-    #    VERSION_TAG: ${VERSION_TAG:-dev}
-    #image: checkout:${VERSION_TAG:-dev}
-
-    # (B) Use a prebuilt image (recommended if you're testing images built with CI)
+  checkout-orders-sqlite:
+    # Use a prebuilt image (recommended if you're testing images built with CI)
     # Comment out (A) block and uncomment the line below
     image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
     restart: unless-stopped
-    command: ["run"]
+    command: ["run", "orders"]
     # If you want to use CLI flags instead of env, uncomment and pass them:
     # command: ["run", "--sqlite", "/data/db", "--log-level", "${LOG_LEVEL:-debug}", "--password", "${AUTH_PASSWORD:-1234}"]
     environment:
       CHECKOUT_SQLITE: /data/checkout.db
       CHECKOUT_MEMORY_DB: "false"
       CHECKOUT_RECREATE_SCHEMA: "true"
+      CHECKOUT_LOG_LEVEL: "debug"
     volumes:
       - appdata:/data
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "${APP_PORT:-8000}:8000"
     healthcheck:
       # No shell or wget in the distroless image: the binary probes itself.
       test: ["CMD", "/usr/local/bin/checkout", "health"]
@@ -92,6 +84,85 @@ services:
       timeout: 3s
       retries: 30
     profiles: ["sqlite"]
+
+  # ---------- Kafka (KRaft single node) — 'events' profile ----------
+  kafka:
+    image: apache/kafka:3.8.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    profiles: ["events"]
+
+  # ---------- Orders service (events) ----------
+  checkout-orders:
+    image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
+    depends_on:
+      database:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["run", "orders"]
+    environment:
+      CHECKOUT_DB_HOST: database
+      CHECKOUT_DB_PORT: 5432
+      CHECKOUT_DB_USER: ${POSTGRES_USER:-checkout}
+      CHECKOUT_DB_PASSWORD: ${POSTGRES_PASSWORD:-checkout}
+      CHECKOUT_EVENT_BROKER: kafka:9092
+      CHECKOUT_LOG_LEVEL: debug
+      CHECKOUT_LOG_FORMAT: text
+      CHECKOUT_PASSWORD: ${PASSWORD:-1234}
+    ports:
+      - "${ORDERS_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/checkout", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+    profiles: ["events"]
+
+  # ---------- Notifier service (events) ----------
+  checkout-notifier:
+    image: ${APP_IMAGE:-checkout}:${APP_TAG:-latest}
+    depends_on:
+      database:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["run", "notifier"]
+    environment:
+      CHECKOUT_DB_HOST: database
+      CHECKOUT_DB_PORT: 5432
+      CHECKOUT_DB_USER: ${POSTGRES_USER:-checkout}
+      CHECKOUT_DB_PASSWORD: ${POSTGRES_PASSWORD:-checkout}
+      CHECKOUT_EVENT_BROKER: kafka:9092
+      CHECKOUT_LOG_LEVEL: debug
+      CHECKOUT_LOG_FORMAT: text
+      CHECKOUT_PASSWORD: ${PASSWORD:-1234}
+    ports:
+      - "${NOTIFIER_PORT:-8001}:8000"
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/checkout", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+    profiles: ["events"]
 
 volumes:
   db:

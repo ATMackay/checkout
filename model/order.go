@@ -9,10 +9,11 @@ import (
 )
 
 type Order struct {
-	ID        int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
-	Reference string          `json:"reference" gorm:"column:reference;type:string;uniqueIndex"` // Unique random reference
-	SKUList   string          `json:"sku_list" gorm:"column:sku_list;type:text"`
-	Price     decimal.Decimal `json:"price" gorm:"column:price;type:numeric(12,2)"`
+	ID         int             `json:"id,omitempty" gorm:"primaryKey;type:integer"`
+	Reference  string          `json:"reference" gorm:"column:reference;type:string;uniqueIndex"` // Unique random reference
+	CustomerID string          `json:"customer_id" gorm:"column:customer_id;type:text"`
+	SKUList    string          `json:"sku_list" gorm:"column:sku_list;type:text"`
+	Price      decimal.Decimal `json:"price" gorm:"column:price;type:numeric(12,2)"`
 }
 
 func (o *Order) TableName() string {
