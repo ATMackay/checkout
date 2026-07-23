@@ -86,9 +86,12 @@ docker-run-sqlite:
 	@docker compose -f docker-compose.yml --profile sqlite up --force-recreate
 
 # Run the full event system: postgres + kafka + orders + notifier.
+# Postgres publishes on host 5433 (not 5432) so it does not collide with a local
+# Postgres — the services reach it over the compose network regardless. Override
+# PG_HOST_PORT / ORDERS_PORT / NOTIFIER_PORT if those host ports are taken.
 # Requires the checkout image (run `make docker` first).
 docker-run-events:
-	@docker compose -f docker-compose.yml --profile events up --force-recreate
+	@PG_HOST_PORT=$${PG_HOST_PORT:-5433} docker compose -f docker-compose.yml --profile events up --force-recreate
 
 openapi-clean:
 	rm -rf ./docs/openapi/*
@@ -102,9 +105,9 @@ openapi: swag-install openapi-clean
 	@swag init \
 		-g main.go \
 		--parseDependency --parseInternal \
-		-o ./docs/openapi/openapi.json \
+		-o ./docs/openapi/ \
 		-ot json
-	@echo "✅ Wrote OpenAPI to docs/openapi/openapi.json"
+	@echo "✅ Wrote OpenAPI to docs/openapi/swagger.json"
 
 api-docs: openapi
 	@echo "✅ All docs generated."

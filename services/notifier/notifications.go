@@ -10,8 +10,17 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// Notifications returns the notifications derived from the outbox. With
-// ?undelivered=true only rows the notifier has not yet delivered are returned.
+// Notifications godoc
+// @Summary List notifications
+// @Description List the notifications derived from the outbox, newest events first.
+// @Tags notifications
+// @Produce json
+// @Param undelivered query bool false "Only return notifications not yet delivered"
+// @Success 200 {array}  model.Notification
+// @Failure 401 {object} errors.JSONError
+// @Failure 500 {object} errors.JSONError
+// @Security XAuthPassword
+// @Router /v1/notifications [get]
 func (h *Service) Notifications() httprouter.Handle {
 	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
 		undelivered := r.URL.Query().Get("undelivered") == "true"

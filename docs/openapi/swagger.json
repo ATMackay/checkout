@@ -12,64 +12,6 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
-        "/health": {
-            "get": {
-                "description": "Checks the health of the service and its dependencies.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "health"
-                ],
-                "summary": "Get service health",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.HealthResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/errors.JSONError"
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "schema": {
-                            "$ref": "#/definitions/model.HealthResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/status": {
-            "get": {
-                "description": "Returns the status of the service",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "status"
-                ],
-                "summary": "Get service status",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.StatusResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/errors.JSONError"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/inventory/item/price/{key}": {
             "get": {
                 "description": "Get price information for a single item by SKU or name",
@@ -269,6 +211,11 @@
         },
         "/v1/inventory/items/purchase": {
             "post": {
+                "security": [
+                    {
+                        "XAuthPassword": []
+                    }
+                ],
                 "description": "Create a purchase order for the supplied item list.",
                 "consumes": [
                     "application/json"
@@ -319,8 +266,61 @@
                 }
             }
         },
+        "/v1/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "XAuthPassword": []
+                    }
+                ],
+                "description": "List the notifications derived from the outbox, newest events first.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "List notifications",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Only return notifications not yet delivered",
+                        "name": "undelivered",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Notification"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/errors.JSONError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/errors.JSONError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/orders": {
             "get": {
+                "security": [
+                    {
+                        "XAuthPassword": []
+                    }
+                ],
                 "description": "List all purchase orders",
                 "produces": [
                     "application/json"
@@ -387,23 +387,6 @@
                 }
             }
         },
-        "model.HealthResponse": {
-            "type": "object",
-            "properties": {
-                "failures": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "service": {
-                    "type": "string"
-                },
-                "version": {
-                    "type": "string"
-                }
-            }
-        },
         "model.Item": {
             "type": "object",
             "properties": {
@@ -433,6 +416,26 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "model.Notification": {
+            "type": "object",
+            "properties": {
+                "customer_id": {
+                    "type": "string"
+                },
+                "delivered": {
+                    "type": "boolean"
+                },
+                "event_id": {
+                    "type": "string"
+                },
+                "occurred_at": {
+                    "type": "string"
+                },
+                "reference": {
+                    "type": "string"
                 }
             }
         },
@@ -509,20 +512,6 @@
                     "type": "number"
                 },
                 "order_reference": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.StatusResponse": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "service": {
-                    "type": "string"
-                },
-                "version": {
                     "type": "string"
                 }
             }

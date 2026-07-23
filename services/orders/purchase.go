@@ -26,6 +26,7 @@ import (
 // @Failure 400 {object} errors.JSONError
 // @Failure 404 {object} errors.JSONError
 // @Failure 503 {object} errors.JSONError
+// @Security XAuthPassword
 // @Router /v1/inventory/items/purchase [post]
 func (h *Service) PurchaseItems() httprouter.Handle {
 	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {

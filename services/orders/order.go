@@ -20,6 +20,7 @@ import (
 // @Failure 401 {object} errors.JSONError
 // @Failure 404 {object} errors.JSONError
 // @Failure 500 {object} errors.JSONError
+// @Security XAuthPassword
 // @Router /v1/orders [get]
 func (h *Service) Orders() httprouter.Handle {
 	return httpserver.Handle(func(r *http.Request, _ httprouter.Params) (any, error) {
