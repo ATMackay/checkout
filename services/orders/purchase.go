@@ -12,7 +12,6 @@ import (
 	"github.com/ATMackay/checkout/model"
 	"github.com/ATMackay/checkout/services/auth"
 	"github.com/julienschmidt/httprouter"
-	"github.com/shopspring/decimal"
 )
 
 // PurchaseItems godoc
@@ -43,81 +42,24 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			return nil, fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
 		}
 
-		// validate request params
-		for _, sku := range pReq.SKUs {
-			if !model.IsSKU(sku) {
-				return nil, fmt.Errorf("%w: invalid sku input '%s'", errors.ErrInvalidInput, sku)
-			}
-		}
-
-		// Fetch items from DB
-		dbItems, err := h.store.GetItemsBySKU(ctx, pReq.SKUs)
+		q, err := h.quote(ctx, pReq.SKUs)
 		if err != nil {
-			return nil, fmt.Errorf("could not get items: %w", err)
+			return nil, err
 		}
-
-		dbItemMap := make(map[string]*model.Item)
-
-		items := []*model.Item{}
-		total := decimal.Zero
-		for _, dbIt := range dbItems {
-			dbItemMap[dbIt.SKU] = dbIt
-			items = append(items, dbIt)
-		}
-
-		itemCount := make(map[string]int)
-		for _, sku := range pReq.SKUs {
-			itemCount[sku]++
-			it := dbItemMap[sku]
-			if it.InventoryQuantity < itemCount[it.SKU] {
-				return nil, fmt.Errorf("%w: item %s empty", errors.ErrNotFound, it.SKU)
-			}
-			total = total.Add(it.Price)
-			// deduct inventory
-			it.InventoryQuantity--
-		}
-
-		skus := pReq.SKUs
-
-		promotions, err := h.promotionsEngine.ApplyPromotions(ctx, items)
-		if err != nil {
-			return nil, fmt.Errorf("could not apply promotion/deals: %w", err)
-		}
-
-		for _, it := range promotions.AddedItems {
-			sku := it.SKU
-			itemCount[sku]++
-			dbIt, err := h.store.GetItemBySKU(ctx, sku)
-			if err != nil {
-				return nil, fmt.Errorf("could not get item: %w", err)
-			}
-			if dbIt.InventoryQuantity < itemCount[sku] {
-				// Skip if we cannot add
-				continue
-			}
-			// Note: DB tx can fail if concurrent requests push InventoryQuantity below zero
-			dbIt.InventoryQuantity--
-
-			items = append(items, dbIt)
-			skus = append(pReq.SKUs, sku)
-		}
-
-		price := total.Sub(decimal.NewFromFloat(promotions.Deduction))
 
 		// Create order
 		order := &model.Order{
-			Price:      price,
+			Price:      q.Total(),
 			Reference:  model.GenerateReference(),
 			CustomerID: customerID,
 		}
-		if err := order.SetSKUList(skus); err != nil {
+		if err := order.SetSKUList(q.SKUs()); err != nil {
 			return nil, err
 		}
 
 		// Execute purchase in a transaction to ensure atomicity
 		err = h.store.Transaction(ctx, func(tx database.Database) error {
-			// Save updated dbItems with new inventory totals
-			if _, err := tx.UpsertItems(ctx, items); err != nil {
+			if _, err := tx.UpsertItems(ctx, stockUpdates(q)); err != nil {
 				return fmt.Errorf("failed to update inventory: %w", err)
 			}
 			// Create order
@@ -145,6 +87,6 @@ func (h *Service) PurchaseItems() httprouter.Handle {
 			return nil, err
 		}
 
-		return &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: price.InexactFloat64()}, nil
+		return &model.PurchaseItemsResponse{OrderReference: order.Reference, Cost: q.Total().InexactFloat64()}, nil
 	})
 }

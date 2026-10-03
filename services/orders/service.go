@@ -9,17 +9,18 @@ import (
 	"context"
 
 	"github.com/ATMackay/checkout/database"
-	"github.com/ATMackay/checkout/promotions"
+	"github.com/ATMackay/checkout/pricing"
 	"github.com/ATMackay/checkout/services/auth"
+	"github.com/shopspring/decimal"
 )
 
 // Service executes business logic covering order and inventory,
 // handles requests, and provides access to the connected Database.
 type Service struct {
 	// Service attributed must be non-empty
-	store            store
-	promotionsEngine *promotions.PromotionsEngine
-	relay            Relayer
+	store  store
+	pricer *pricing.Pricer
+	relay  Relayer
 	// authn resolves credentials for the service's protected routes. Injected
 	// like any other dependency; the service knows which routes need it.
 	authn auth.Authenticator
@@ -49,10 +50,10 @@ func NewService(db store,
 ) *Service {
 	srv := &Service{
 		store: db,
-		promotionsEngine: promotions.NewPromotionsEngine(
-			promotions.NewMacBookProPromotion(db),
-			&promotions.GoogleTVPromotion{},
-			&promotions.AlexaSpeakerPromotion{}, // Add more deals/promotions to the engine
+		pricer: pricing.NewPricer(
+			pricing.FreeItem("MacBook Pro", "Raspberry Pi B"),
+			pricing.BuyXPayY("Google TV", 3, 2),
+			pricing.BulkDiscount("Alexa Speaker", 3, decimal.NewFromInt(10)),
 		),
 		relay: relayer, // Noop or Kafka
 		authn: authn,

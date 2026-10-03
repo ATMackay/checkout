@@ -9,7 +9,6 @@ import (
 	"github.com/ATMackay/checkout/httpserver"
 	"github.com/ATMackay/checkout/model"
 	"github.com/julienschmidt/httprouter"
-	"github.com/shopspring/decimal"
 )
 
 // ListItems godoc
@@ -122,37 +121,10 @@ func (h *Service) ItemsPrice() httprouter.Handle {
 			return nil, fmt.Errorf("%w: %v", errors.ErrInvalidInput, err)
 		}
 
-		// validate request params
-		for _, sku := range pReq.SKUs {
-			if !model.IsSKU(sku) {
-				return nil, fmt.Errorf("%w: invalid sku input '%s'", errors.ErrInvalidInput, sku)
-			}
-		}
-
-		dbItems, err := h.store.GetItemsBySKU(ctx, pReq.SKUs)
+		q, err := h.quote(ctx, pReq.SKUs)
 		if err != nil {
-			return nil, fmt.Errorf("could not get items: %w", err)
+			return nil, err
 		}
-
-		resp := &model.PriceResponse{}
-		total := decimal.Zero
-		for _, it := range dbItems {
-			if it.InventoryQuantity < 1 {
-				return nil, fmt.Errorf("%w: item %s empty", errors.ErrNotFound, it.SKU)
-			}
-			resp.Items = append(resp.Items, it)
-			total = total.Add(it.Price)
-		}
-
-		promotions, err := h.promotionsEngine.ApplyPromotions(ctx, resp.Items)
-		if err != nil {
-			return nil, fmt.Errorf("could not apply promotion/deals: %w", err)
-		}
-
-		resp.Promotions = promotions
-		resp.TotalGross = total.InexactFloat64()
-		resp.TotalWithDiscount = total.InexactFloat64() - promotions.Deduction
-
-		return resp, nil
+		return priceResponse(q), nil
 	})
 }
