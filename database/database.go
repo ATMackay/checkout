@@ -85,6 +85,15 @@ func (g *GormDB) Ping(ctx context.Context) error {
 	return sqlDB.PingContext(ctx)
 }
 
+// Close releases the underlying connection pool.
+func (g *GormDB) Close() error {
+	sqlDB, err := g.db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+	return sqlDB.Close()
+}
+
 // InventoryStore Implementation
 
 func (g *GormDB) GetItemByName(ctx context.Context, name string) (*model.Item, error) {
